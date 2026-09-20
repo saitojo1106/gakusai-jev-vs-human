@@ -222,7 +222,9 @@ export const shiftRecordSchema = z.object({
   airport: airportNameSchema,
   startedAt: isoDateTime,
   jev: z.array(timedJudgeDecisionSchema),
+  jevWallMs: z.number().min(0),
   human: z.array(humanDecisionSchema.nullable()),
+  resultId: resultIdSchema.nullable(),
 });
 
 export const shiftResultSchema = z.object({

@@ -178,7 +178,9 @@ export interface ShiftRecord {
   readonly airport: AirportName;
   readonly startedAt: string;
   readonly jev: readonly TimedJudgeDecision[];
+  readonly jevWallMs: number;
   readonly human: readonly (HumanDecision | null)[];
+  readonly resultId: ResultId | null;
 }
 
 export type Level = 1 | 2 | 3 | 4 | 5;

@@ -178,7 +178,9 @@ describe('shiftRecordSchema', () => {
       airport: 'ぼくの空港' as AirportName,
       startedAt: '2026-09-20T05:00:00.000Z',
       jev: [{ decision: decided, latencyMs: 210 }],
+      jevWallMs: 830,
       human: [null],
+      resultId: null,
     };
     expect(shiftRecordSchema.parse(roundTrip(record))).toEqual(record);
   });
