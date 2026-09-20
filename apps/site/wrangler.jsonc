@@ -17,6 +17,7 @@
 		}
 	],
 	"workers_dev": true,
+	"preview_urls": false,
 	"routes": [
 		{
 			"pattern": "security.saitoudayooooon-jo.com",
