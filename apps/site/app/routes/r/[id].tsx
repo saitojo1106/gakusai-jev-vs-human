@@ -27,6 +27,7 @@ const Marks = ({ result, side }: { result: ShiftResult; side: 'human' | 'jev' })
 export default createRoute(async (c) => {
   const usecases = createUsecases(createDeps(c.env as AppBindings, c.req.url));
   const result = await usecases.getResult({ resultId: c.req.param('id') ?? '' }).catch(() => null);
+  const fromRanking = c.req.query('from') === 'ranking';
 
   if (result === null) {
     return c.render(
@@ -105,9 +106,11 @@ export default createRoute(async (c) => {
       </div>
 
       <div class="mt-6 flex flex-wrap gap-2">
-        <a href={meta.shareUrl} target="_blank" rel="noreferrer" class="btn btn-primary">
-          X でシェア
-        </a>
+        {fromRanking ? null : (
+          <a href={meta.shareUrl} target="_blank" rel="noreferrer" class="btn btn-primary">
+            X でシェア
+          </a>
+        )}
         <a href="/ranking" class="btn btn-outline">
           ランキングを見る
         </a>

@@ -183,18 +183,18 @@ describe('getRanking', () => {
     expect(ranking.map((e) => e.resultId)).toEqual(['high', 'mid', 'low']);
   });
 
-  it('既定は 20 件まで', async () => {
-    for (let i = 0; i < 60; i += 1) {
+  it('既定は 100 件まで', async () => {
+    for (let i = 0; i < 140; i += 1) {
       await leaderboard.add(entry({ resultId: `r${i}` as ResultId, points: i }));
     }
     expect(await usecases.getRanking({})).toHaveLength(LEADERBOARD_SIZE);
   });
 
-  it('20 件より多く要求されても 20 件までに丸める', async () => {
-    for (let i = 0; i < 60; i += 1) {
+  it('100 件より多く要求されても 100 件までに丸める', async () => {
+    for (let i = 0; i < 140; i += 1) {
       await leaderboard.add(entry({ resultId: `r${i}` as ResultId, points: i }));
     }
-    expect(await usecases.getRanking({ limit: 100 })).toHaveLength(LEADERBOARD_SIZE);
+    expect(await usecases.getRanking({ limit: 500 })).toHaveLength(LEADERBOARD_SIZE);
   });
 
   it('空港名で絞り込める', async () => {

@@ -105,3 +105,91 @@ body {
   background: var(--loader-color-fill);
   transition: width 0.25s ease-out;
 }
+
+.xray-frame {
+  position: relative;
+  aspect-ratio: 2 / 3;
+  max-height: 46vh;
+  margin-inline: auto;
+  overflow: hidden;
+  border: 1px solid var(--color-base-300);
+  border-radius: var(--radius-box);
+  background:
+    radial-gradient(ellipse at 50% 40%, oklch(32% 0.06 220 / 0.9), transparent 70%),
+    oklch(18% 0.03 230);
+}
+
+.xray-silhouette {
+  position: absolute;
+  inset: 0;
+  background: linear-gradient(180deg, oklch(88% 0.11 195), oklch(58% 0.13 220));
+  mask: var(--portrait) center bottom / contain no-repeat;
+  -webkit-mask: var(--portrait) center bottom / contain no-repeat;
+}
+
+.xray-grid {
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+  background-image:
+    repeating-linear-gradient(0deg, oklch(80% 0.1 200 / 0.07) 0 1px, transparent 1px 7px),
+    repeating-linear-gradient(90deg, oklch(80% 0.1 200 / 0.05) 0 1px, transparent 1px 7px);
+}
+
+.xray-beam {
+  position: absolute;
+  left: 0;
+  right: 0;
+  height: 18%;
+  pointer-events: none;
+  background: linear-gradient(
+    180deg,
+    transparent,
+    oklch(92% 0.15 195 / 0.55) 45%,
+    oklch(98% 0.05 195 / 0.9) 50%,
+    oklch(92% 0.15 195 / 0.55) 55%,
+    transparent
+  );
+  animation: xray-sweep 1.4s ease-in-out infinite;
+}
+
+@keyframes xray-sweep {
+  from {
+    top: -18%;
+  }
+  to {
+    top: 100%;
+  }
+}
+
+.xray-hotspot {
+  position: absolute;
+  width: 18%;
+  aspect-ratio: 1;
+  translate: -50% -50%;
+  border: 2px solid var(--color-error);
+  border-radius: 50%;
+  box-shadow: 0 0 0 9999px oklch(20% 0.02 240 / 0.45);
+  animation: xray-lock 1.1s ease-out infinite;
+}
+
+@keyframes xray-lock {
+  0% {
+    scale: 1.7;
+    opacity: 0;
+  }
+  35% {
+    opacity: 1;
+  }
+  100% {
+    scale: 1;
+    opacity: 1;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .xray-beam,
+  .xray-hotspot {
+    animation: none;
+  }
+}

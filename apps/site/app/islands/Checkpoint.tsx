@@ -29,6 +29,7 @@ import type {
 } from '@game/domain';
 import { useEffect, useState } from 'hono/jsx';
 import { InterviewPanel } from '../components/InterviewPanel.js';
+import { XrayDialog } from '../components/XrayDialog.js';
 import { XrayPanel } from '../components/XrayPanel.js';
 import { browser, goTo, readSession, writeSession } from './browser.js';
 import { numberValue } from './dom.js';
@@ -64,6 +65,7 @@ export default function Checkpoint({ shiftId, index }: { shiftId: string; index:
   const [xrayUsedOn, setXrayUsedOn] = useState<number | null>(null);
   const [bodyScan, setBodyScan] = useState<BodyScanFinding | null>(null);
   const [scanning, setScanning] = useState(false);
+  const [scanOpen, setScanOpen] = useState(false);
   const [confidence, setConfidence] = useState(0.8);
   const [inspected, setInspected] = useState<InspectedItem[]>(['identity']);
   const [startedAt] = useState(Date.now());
@@ -115,6 +117,7 @@ export default function Checkpoint({ shiftId, index }: { shiftId: string; index:
   const runXray = async () => {
     if (scanning || xrayUsedOn !== null) return;
     setScanning(true);
+    setScanOpen(true);
 
     const [response] = await Promise.all([
       fetch(`/api/shift/${shiftId}/passenger/${index}/xray`, { method: 'POST' }),
@@ -509,6 +512,7 @@ export default function Checkpoint({ shiftId, index }: { shiftId: string; index:
                     usedOn={xrayUsedOn}
                     scanning={scanning}
                     onScan={runXray}
+                    onReopen={() => setScanOpen(true)}
                   />
                 ) : null}
 
@@ -596,6 +600,14 @@ export default function Checkpoint({ shiftId, index }: { shiftId: string; index:
       ) : (
         <RevealCard reveal={reveal} totals={totals} index={index} onNext={next} />
       )}
+
+      <XrayDialog
+        open={scanOpen}
+        portrait={passengerImage(dossier.appearance.archetype, dossier.appearance.demeanor)}
+        scanning={scanning}
+        finding={bodyScan}
+        onClose={() => setScanOpen(false)}
+      />
     </>
   );
 }

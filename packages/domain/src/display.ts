@@ -102,6 +102,51 @@ export const BODY_SCAN_LABELS: Readonly<Record<BodyScanFinding, string>> = {
   unreadable: '判読できない（体動によるブレ）',
 };
 
+export interface BodyScanReadout {
+  readonly headline: string;
+  readonly detail: string;
+  readonly region: string;
+  readonly density: string;
+  readonly alarming: boolean;
+  /** シルエット上のホットスポット位置（コンテナに対する %）。異常がなければ null。 */
+  readonly hotspot: { readonly x: number; readonly y: number } | null;
+}
+
+export const BODY_SCAN_READOUTS: Readonly<Record<BodyScanFinding, BodyScanReadout>> = {
+  clear: {
+    headline: '異常なし',
+    detail: '体内に不審な物体は検出されませんでした。',
+    region: '—',
+    density: '基準値内',
+    alarming: false,
+    hotspot: null,
+  },
+  dense_object: {
+    headline: '体内に銃器を隠し持っています',
+    detail: '腹腔内に強い金属反応。輪郭は拳銃と一致します。',
+    region: '腹部',
+    density: '7.8 g/cm³（金属）',
+    alarming: true,
+    hotspot: { x: 50, y: 52 },
+  },
+  organic_mass: {
+    headline: '体内に密封された包みがあります',
+    detail: '消化管内に不自然な有機物の塊が複数。自然な内容物ではありません。',
+    region: '消化管',
+    density: '1.4 g/cm³（有機物）',
+    alarming: true,
+    hotspot: { x: 48, y: 58 },
+  },
+  unreadable: {
+    headline: '判読不能',
+    detail: '体動でスキャンがぶれました。この乗客の再スキャンはできません。',
+    region: '—',
+    density: '測定不可',
+    alarming: false,
+    hotspot: null,
+  },
+};
+
 export const CRIMINAL_LABELS: Readonly<Record<BackgroundRecord['criminalHistory'], string>> = {
   none: 'なし',
   minor: '軽微',

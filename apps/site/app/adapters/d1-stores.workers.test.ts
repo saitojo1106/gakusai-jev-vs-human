@@ -265,13 +265,13 @@ describe('D1Leaderboard', () => {
     expect(await board().top(3)).toHaveLength(3);
   });
 
-  it('20 件より多く入っていても、求められた件数までしか返さない', async () => {
-    for (let i = 0; i < 30; i += 1) {
+  it('上限より多く入っていても、求められた件数までしか返さない', async () => {
+    for (let i = 0; i < LEADERBOARD_SIZE + 10; i += 1) {
       await board().add(entry({ resultId: `r${i}` as ResultId, points: i }));
     }
     const top = await board().top(LEADERBOARD_SIZE);
     expect(top).toHaveLength(LEADERBOARD_SIZE);
-    expect(top[0]?.points).toBe(29);
+    expect(top[0]?.points).toBe(LEADERBOARD_SIZE + 9);
   });
 
   it('空港名で絞り込める', async () => {

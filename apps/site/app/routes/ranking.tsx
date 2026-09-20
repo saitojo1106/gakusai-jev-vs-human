@@ -73,7 +73,7 @@ export default createRoute(async (c) => {
                   </td>
                   <td class="whitespace-nowrap opacity-70">{formatDate(entry.finishedAt)}</td>
                   <td>
-                    <a class="link link-primary" href={`/r/${entry.resultId}`}>
+                    <a class="link link-primary" href={`/r/${entry.resultId}?from=ranking`}>
                       詳細
                     </a>
                   </td>

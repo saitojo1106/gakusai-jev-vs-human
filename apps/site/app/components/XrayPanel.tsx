@@ -1,4 +1,4 @@
-import { BODY_SCAN_LABELS } from '@game/domain/display';
+import { BODY_SCAN_READOUTS } from '@game/domain/display';
 import type { BodyScanFinding } from '@game/domain';
 
 export interface XrayPanelProps {
@@ -6,6 +6,7 @@ export interface XrayPanelProps {
   readonly usedOn: number | null;
   readonly scanning: boolean;
   readonly onScan: () => void;
+  readonly onReopen: () => void;
 }
 
 const auraFor = (scanning: boolean, available: boolean): string => {
@@ -13,7 +14,7 @@ const auraFor = (scanning: boolean, available: boolean): string => {
   return scanning ? 'aura aura-holo aura-lg duration-[1.5s]' : 'aura aura-lg text-warning';
 };
 
-export const XrayPanel = ({ finding, usedOn, scanning, onScan }: XrayPanelProps) => {
+export const XrayPanel = ({ finding, usedOn, scanning, onScan, onReopen }: XrayPanelProps) => {
   if (finding === null) {
     const available = usedOn === null;
     const label = scanning
@@ -42,21 +43,25 @@ export const XrayPanel = ({ finding, usedOn, scanning, onScan }: XrayPanelProps)
     );
   }
 
-  const quiet = finding === 'clear' || finding === 'unreadable';
+  const readout = BODY_SCAN_READOUTS[finding];
 
   return (
     <>
-      {quiet ? (
-        <div role="alert" class="alert alert-soft">
-          <span>所見: {BODY_SCAN_LABELS[finding]}</span>
-        </div>
-      ) : (
+      {readout.alarming ? (
         <div class="aura aura-glow aura-xl block text-error duration-[2s]">
           <div role="alert" class="alert alert-error">
-            <span class="font-bold">所見: {BODY_SCAN_LABELS[finding]}</span>
+            <span class="font-bold">{readout.headline}</span>
           </div>
         </div>
+      ) : (
+        <div role="alert" class="alert alert-soft">
+          <span>{readout.headline}</span>
+        </div>
       )}
+      <p class="text-sm">{readout.detail}</p>
+      <button type="button" class="btn btn-outline btn-sm self-start" onClick={onReopen}>
+        スキャン画像を見る
+      </button>
       <p class="text-sm opacity-60">このシフトの X 線検査はもう使えません。</p>
     </>
   );
