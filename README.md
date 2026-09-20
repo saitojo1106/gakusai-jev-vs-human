@@ -96,9 +96,9 @@ KV アダプタのテストは Miniflare 上で走る（`--project site-workers`
 
 | 種別 | ファイル名 | 枚数 | 仕様 |
 | --- | --- | --- | --- |
-| 乗客イラスト | `images/passengers/passenger_{archetypeId}_{mood}.png` | 16 × 3（MVP は 8 × 3） | 全身・正面やや斜め・背景透過・1024×1536 |
-| レベルカード | `images/levels/level_{1..5}.png` | 5 | 1200×630、右 40% を空ける（後からスコアを重ねる） |
-| 背景 | `bg_checkpoint.png` / `bg_title.png` | 2 | 1920×1080 |
+| 乗客イラスト | `img/passengers/passenger_{archetypeId}_{mood}.png` | 16 × 3（MVP は 8 × 3） | 全身・正面やや斜め・背景透過・1024×1536 |
+| レベルカード | `img/levels/level_{1..5}.png` | 5 | 1200×630、右 40% を空ける（後からスコアを重ねる） |
+| 背景 | `img/bg/bg_checkpoint.png` / `img/bg/bg_title.png` | 2 | 1920×1080 |
 | Jev アバター | `jev_avatar_{idle,scanning,win,lose}.png` | 4 | 監視カメラ型ロボット |
 | 上司 | `supervisor_{neutral,angry}.png` | 2 | 苦情演出 |
 | スタンプ | `stamp_pass.png` / `stamp_detain.png` | 2 | 判定演出 |
