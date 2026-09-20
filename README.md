@@ -16,7 +16,7 @@
 3. **Jev はそのまま使う** — Jev の精度は調整しない。生成器のノイズ量だけを人間が面白いと感じる値に固定する。
 4. **制限時間なし** — ただし所要時間は計測し、Jev の数秒と並べて見せる。
 5. **ログインなし** — 1 台の PC を交代で触る前提。結果は URL で持ち帰る。
-6. **RDB なし** — 乗客はシードから決定的に生成し、結果とランキングだけ Cloudflare KV に保存する。
+6. **乗客は保存しない** — 乗客はシードから決定的に生成し、保存するのはシフト・判定・結果・ランキングだけ。
 
 ## 技術スタック
 
@@ -24,7 +24,7 @@
 | --- | --- |
 | ランタイム | Cloudflare Workers（Static Assets 同梱） |
 | フレームワーク | HonoX 0.1.x（hono/jsx レンダラ）/ Hono 4.13 |
-| 永続化 | Cloudflare KV（`shift:` / `result:` / `board:top`） |
+| 永続化 | Cloudflare D1 + Drizzle ORM（`shifts` / `decisions` / `results` / `leaderboard`） |
 | 判定 AI | Jev（Vercel AI Gateway `POST /v1/evaluate`、Bearer 認証） |
 | 型と検証 | TypeScript strict + Zod 4（境界のみ） |
 | テスト | Vitest 5 + `@cloudflare/vitest-pool-workers` |
@@ -43,7 +43,7 @@ packages/
   contracts/             API の Zod スキーマと型（島とサーバーで共有）
 ```
 
-依存の方向は `presentation → application → domain`。Jev と KV への依存は Port に閉じ込め、テストでは Fake に差し替える。`domain` は外側を一切 import しない。
+依存の方向は `presentation → application → domain`。Jev と D1 への依存は Port に閉じ込め、テストでは Fake に差し替える。`domain` は外側を一切 import しない。
 
 生成ロジックはサーバー側にしか置かない（島にバンドルすると Truth が推測できてしまうため）。
 
@@ -98,7 +98,7 @@ pnpm typecheck      # 型チェック
 pnpm --filter @game/site build && pnpm --filter @game/site exec wrangler dev
 ```
 
-KV アダプタのテストは Miniflare 上で走る（`--project site-workers`）。`@cloudflare/vitest-pool-workers` が vitest 4 系までなので、vitest は 4 に固定している。workerd が対応する最新の互換性日付に合わせて `compatibility_date` は `2026-08-22`。
+D1 アダプタのテストは Miniflare 上で走る（`--project site-workers`）。マイグレーションは `readD1Migrations` で読み、セットアップファイルが各ワーカーに適用する。`@cloudflare/vitest-pool-workers` が vitest 4 系までなので、vitest は 4 に固定している。workerd が対応する最新の互換性日付に合わせて `compatibility_date` は `2026-08-22`。
 
 ## 進め方
 
@@ -192,9 +192,22 @@ pnpm --filter @game/site run deploy
 pnpm --filter @game/site exec wrangler secret put AI_GATEWAY_API_KEY
 ```
 
-KV ネームスペース `GAME_KV` は作成済みで、id は [wrangler.jsonc](apps/site/wrangler.jsonc) に入っている。
-ローカル開発は Miniflare のローカル KV を使う（`remote` は付けない）。付けると開発中のテストプレイが
+D1 データベース `gakusai-jev` は作成済みで、id は [wrangler.jsonc](apps/site/wrangler.jsonc) に入っている。
+ローカル開発は Miniflare のローカル D1 を使う（`remote` は付けない）。付けると開発中のテストプレイが
 本番のランキングに混ざる。
+
+スキーマを変えたらマイグレーションを生成して適用する。
+
+```bash
+pnpm --filter @game/site exec drizzle-kit generate --name <名前>
+pnpm --filter @game/site exec wrangler d1 migrations apply gakusai-jev --local
+pnpm --filter @game/site exec wrangler d1 migrations apply gakusai-jev --remote
+```
+
+KV ではなく D1 を使っているのは、無料枠の書き込み上限が KV は 1,000/日、D1 は 100,000 行/日だから。
+1 プレイあたり 15 行書くので、KV では 1 日 66 プレイで頭打ちになる。あわせて、同一乗客の二重判定と
+X 線の二重使用を主キーと条件付き UPDATE で弾けるようになり、ランキングも 1 行 INSERT になるので
+read-modify-write によるロストアップデートが起きない。
 
 `apps/site/public/.assetsignore` で、サーバーのバンドル（`index.js`）とビルドのマニフェストを静的アセット
 から外している。`assets.directory` が `./dist` なので、外さないと `/index.js` が公開されて生成器と
