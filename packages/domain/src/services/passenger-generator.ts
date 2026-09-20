@@ -1,5 +1,5 @@
 import { PASSENGERS_PER_SHIFT, REFERENCE_DATE, THREAT_RATE } from '../constants.js';
-import { type Archetype, MVP_ARCHETYPES } from '../content/archetypes.js';
+import { ARCHETYPES, type Archetype } from '../content/archetypes.js';
 import { COUNTRIES_BY_STABILITY, DESTINATIONS } from '../content/countries.js';
 import { ITEMS, itemOf, itemsFor } from '../content/items.js';
 import { FAMILY_NAMES, GIVEN_NAMES } from '../content/names.js';
@@ -44,7 +44,7 @@ const baseDemeanor = (rng: Prng): Demeanor =>
   rng.pick(['calm', 'calm', 'calm', 'nervous', 'irritable', 'evasive'] as const);
 
 const buildBase = (rng: Prng): DossierDraft => {
-  const archetype = rng.pick(MVP_ARCHETYPES);
+  const archetype = rng.pick(ARCHETYPES);
   const purpose = rng.pick(archetype.purposes);
   const [minStay, maxStay] = STAY_DAYS[purpose];
   const nationality = rng.pick([

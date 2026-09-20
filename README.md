@@ -100,7 +100,7 @@ KV アダプタのテストは Miniflare 上で走る（`--project site-workers`
 
 | 種別 | ファイル名 | 枚数 | 仕様 |
 | --- | --- | --- | --- |
-| 乗客イラスト | `img/passengers/passenger_{archetypeId}_{mood}.png` | 16 × 3（MVP は 8 × 3） | 全身・正面やや斜め・背景透過・1024×1536 |
+| 乗客イラスト | `img/passengers/passenger_{archetypeId}_{mood}.png` | 8 × 3 = 24（揃っている） | 全身・正面やや斜め・背景透過・1024×1536 |
 | レベルカード | `img/levels/level_{1..5}.png` | 5 | 1200×630、右 40% を空ける（後からスコアを重ねる） |
 | 背景 | `img/bg/bg_checkpoint.png` / `img/bg/bg_title.png` | 2 | 1920×1080 |
 | Jev アバター | `jev_avatar_{idle,scanning,win,lose}.png` | 4 | 監視カメラ型ロボット |
@@ -108,7 +108,7 @@ KV アダプタのテストは Miniflare 上で走る（`--project site-workers`
 | スタンプ | `stamp_pass.png` / `stamp_detain.png` | 2 | 判定演出 |
 | その他 | `seal.png` / `news_flash_frame.png` / `id_card_frame.png` / `boarding_pass_frame.png` | 4 | 文字はコードで載せる |
 
-アーキタイプ ID と `mood`（`calm` / `nervous` / `evasive`）の一覧は [archetypes.ts](packages/domain/src/content/archetypes.ts) が正。`demeanor` は 5 種類あるが、イラストは 3 種類に丸める（`sweating`→`nervous`、`irritable`→`evasive`）。
+アーキタイプ ID と `mood`（`calm` / `nervous` / `evasive`）の一覧は [archetypes.ts](packages/domain/src/content/archetypes.ts) が正。ファイルが一覧どおり揃っているかは [assets.test.ts](apps/site/app/assets.test.ts) で検証する。`demeanor` は 5 種類あるが、イラストは 3 種類に丸める（`sweating`→`nervous`、`irritable`→`evasive`）。
 
 共通スタイル: flat vector illustration, thick clean outlines, limited palette (navy / sand / signal orange), no text, transparent background.
 

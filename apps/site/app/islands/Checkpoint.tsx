@@ -34,6 +34,7 @@ import { browser, goTo, readSession, writeSession } from './browser.js';
 import { numberValue } from './dom.js';
 
 const FOLLOW_UP_UNLOCKED_AFTER = 3;
+const MIN_SCAN_MS = 1600;
 
 type CenterTab = 'identity' | 'boarding_pass' | 'belongings';
 type RightTab = 'interview' | 'mouth' | 'xray' | 'record';
@@ -115,9 +116,11 @@ export default function Checkpoint({ shiftId, index }: { shiftId: string; index:
     if (scanning || xrayUsedOn !== null) return;
     setScanning(true);
 
-    const response = await fetch(`/api/shift/${shiftId}/passenger/${index}/xray`, {
-      method: 'POST',
-    });
+    const [response] = await Promise.all([
+      fetch(`/api/shift/${shiftId}/passenger/${index}/xray`, { method: 'POST' }),
+      new Promise((resolve) => setTimeout(resolve, MIN_SCAN_MS)),
+    ]);
+
     if (response.ok) {
       const body = (await response.json()) as { finding: BodyScanFinding; usedOn: number };
       setBodyScan(body.finding);
@@ -275,11 +278,17 @@ export default function Checkpoint({ shiftId, index }: { shiftId: string; index:
                     />
                   ))}
                 </div>
-                <img
-                  class="portrait mx-auto w-full max-w-56 rounded-box border border-base-300 bg-neutral"
-                  src={passengerImage(dossier.appearance.archetype, dossier.appearance.demeanor)}
-                  alt=""
-                />
+                <div
+                  class={`mx-auto block w-full max-w-56 ${
+                    scanning ? 'aura aura-holo aura-lg duration-[1.5s]' : ''
+                  }`}
+                >
+                  <img
+                    class="portrait w-full rounded-box border border-base-300 bg-neutral"
+                    src={passengerImage(dossier.appearance.archetype, dossier.appearance.demeanor)}
+                    alt=""
+                  />
+                </div>
                 <div>
                   態度:{' '}
                   <span class="badge badge-warning badge-sm">
@@ -536,38 +545,49 @@ export default function Checkpoint({ shiftId, index }: { shiftId: string; index:
                             X 線検査は <b>1 シフトに 1 回だけ</b>。使いどころを選んでください。
                           </span>
                         </div>
-                        <button
-                          type="button"
-                          class="btn btn-warning btn-outline"
-                          onClick={runXray}
-                          disabled={scanning || xrayUsedOn !== null}
+                        <div
+                          class={`self-start ${
+                            xrayUsedOn === null
+                              ? scanning
+                                ? 'aura aura-holo aura-lg duration-[1.5s]'
+                                : 'aura aura-lg text-warning'
+                              : ''
+                          }`}
                         >
-                          {scanning ? (
-                            <>
-                              <span class="loading loading-spinner loading-sm" />
-                              スキャン中…
-                            </>
-                          ) : xrayUsedOn !== null ? (
-                            `使用済み（${xrayUsedOn + 1} 人目に使いました）`
-                          ) : (
-                            'この乗客に X 線検査を使う'
-                          )}
-                        </button>
+                          <button
+                            type="button"
+                            class="btn btn-warning"
+                            onClick={runXray}
+                            disabled={scanning || xrayUsedOn !== null}
+                          >
+                            {scanning ? (
+                              <>
+                                <span class="loading loading-bars loading-sm" />
+                                スキャン中…
+                              </>
+                            ) : xrayUsedOn !== null ? (
+                              `使用済み（${xrayUsedOn + 1} 人目）`
+                            ) : (
+                              'この乗客に X 線検査を使う'
+                            )}
+                          </button>
+                        </div>
+                      </>
+                    ) : bodyScan === 'clear' || bodyScan === 'unreadable' ? (
+                      <>
+                        <div role="alert" class="alert alert-soft">
+                          <span>所見: {BODY_SCAN_LABELS[bodyScan]}</span>
+                        </div>
+                        <p class="text-sm opacity-60">このシフトの X 線検査はもう使えません。</p>
                       </>
                     ) : (
                       <>
-                        <p
-                          class={
-                            bodyScan === 'clear' || bodyScan === 'unreadable'
-                              ? 'opacity-60'
-                              : 'font-bold text-warning'
-                          }
-                        >
-                          所見: {BODY_SCAN_LABELS[bodyScan]}
-                        </p>
-                        <p class="text-sm opacity-60">
-                          このシフトの X 線検査はもう使えません。
-                        </p>
+                        <div class="aura aura-glow aura-xl block text-error duration-[2s]">
+                          <div role="alert" class="alert alert-error">
+                            <span class="font-bold">所見: {BODY_SCAN_LABELS[bodyScan]}</span>
+                          </div>
+                        </div>
+                        <p class="text-sm opacity-60">このシフトの X 線検査はもう使えません。</p>
                       </>
                     )}
                   </>
