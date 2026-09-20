@@ -59,7 +59,11 @@ Jev を実際に叩くには Vercel AI Gateway の API キーが要る。ロー�
 AI_GATEWAY_API_KEY=...
 ```
 
-キーなしで動かす場合は `JUDGE=fake` で `FakeJudge` に差し替える。
+キーなしで動かす場合は `JUDGE=fake` で `FakeJudge` に差し替える。キー未設定なら自動で `FakeJudge` になるので、`pnpm --filter @game/site dev` だけで遊べる。
+
+```bash
+pnpm --filter @game/site dev
+```
 
 ## 開発コマンド
 
@@ -82,8 +86,9 @@ KV アダプタのテストは Miniflare 上で走る（`--project site-workers`
 - [x] `StartShift` / `SubmitVerdict` / `FinishShift`（Fake で）
 - [x] `JevGatewayJudge`（fetch モック。契約テストは未）
 - [x] `KvShiftStore` / `KvResultStore` / `KvLeaderboard`
-- [ ] HonoX の API ルート → `/r/:id` の SSR（OG タグ）→ `/ranking`
-- [ ] 島（`Checkpoint` → `JevDemo` → `ShareButtons`）
+- [x] HonoX の API ルート → `/r/:id` の SSR（OG タグ）→ `/ranking`
+- [x] 島（`Checkpoint` と `StartShift`。`JevDemo` は `StartShift` に統合）
+- [ ] 契約テスト（実 Jev への 1 回）と OG 画像の動的生成（v1.1）
 
 ## 画像アセット
 
