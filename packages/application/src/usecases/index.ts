@@ -200,6 +200,7 @@ export const createUsecases = (deps: UsecaseDeps) => {
           outcome: scored.outcome,
           points: scored.points,
           latencyMs: timed.latencyMs,
+          reason: timed.decision.kind === 'unavailable' ? timed.decision.reason : null,
         };
       });
 

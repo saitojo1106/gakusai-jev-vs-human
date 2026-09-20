@@ -16,7 +16,7 @@ export default createRoute((c) =>
               ランキングを見る
             </a>
             <a class="link link-primary" href="/demo">
-              Jev だけで 100 人
+              Jev だけの審査を見る
             </a>
           </div>
         </div>

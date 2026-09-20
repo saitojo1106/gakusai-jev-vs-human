@@ -69,6 +69,7 @@ export const demoRowSchema = z.object({
   ]),
   points: z.number(),
   latencyMs: z.number().min(0),
+  reason: z.string().nullable(),
 });
 
 export const demoBatchResponseSchema = z.object({

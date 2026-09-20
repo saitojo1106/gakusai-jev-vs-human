@@ -160,7 +160,7 @@ describe('JevGatewayJudge', () => {
       status: 502,
       text: () => Promise.reject(new Error('stream closed')),
     } as unknown as Response);
-    const { decisions } = await judge().evaluateMany(dossiers(1));
+    const { decisions } = await judge({ retryBaseMs: 0, maxRetries: 0 }).evaluateMany(dossiers(1));
     const decision = decisions[0]?.decision;
 
     if (decision?.kind !== 'unavailable') throw new Error('unreachable');
@@ -200,10 +200,10 @@ describe('JevGatewayJudge', () => {
     let call = 0;
     fetchImpl.mockImplementation(() => {
       call += 1;
-      return call === 2 ? Promise.resolve(new Response('', { status: 503 })) : Promise.resolve(ok());
+      return call === 2 ? Promise.resolve(new Response('', { status: 400 })) : Promise.resolve(ok());
     });
 
-    const { decisions } = await judge().evaluateMany(dossiers(3));
+    const { decisions } = await judge({ maxConcurrency: 1 }).evaluateMany(dossiers(3));
     expect(decisions.map((d) => d.decision.kind)).toEqual(['decided', 'unavailable', 'decided']);
   });
 
@@ -240,6 +240,145 @@ describe('JevGatewayJudge', () => {
 
     const { decisions } = await judge().evaluateMany(dossiers(1));
     expect(decisions[0]?.decision).toMatchObject({ verdictConfidence: 0.98 });
+  });
+
+  it('429 が返ったら間を置いて投げ直す', async () => {
+    let call = 0;
+    fetchImpl.mockImplementation(() => {
+      call += 1;
+      return Promise.resolve(
+        call === 1
+          ? new Response(JSON.stringify({ error: { type: 'rate_limit_exceeded' } }), { status: 429 })
+          : ok(),
+      );
+    });
+
+    const { decisions } = await judge({ retryBaseMs: 0 }).evaluateMany(dossiers(1));
+    expect(call).toBe(2);
+    expect(decisions[0]?.decision.kind).toBe('decided');
+  });
+
+  it('5xx も投げ直す', async () => {
+    let call = 0;
+    fetchImpl.mockImplementation(() => {
+      call += 1;
+      return Promise.resolve(call === 1 ? new Response('', { status: 503 }) : ok());
+    });
+
+    const { decisions } = await judge({ retryBaseMs: 0 }).evaluateMany(dossiers(1));
+    expect(decisions[0]?.decision.kind).toBe('decided');
+  });
+
+  it('投げ直す回数には上限がある', async () => {
+    fetchImpl.mockResolvedValue(new Response('busy', { status: 429 }));
+    const { decisions } = await judge({ retryBaseMs: 0, maxRetries: 2 }).evaluateMany(dossiers(1));
+
+    expect(fetchImpl).toHaveBeenCalledTimes(3);
+    expect(decisions[0]?.decision).toMatchObject({ kind: 'unavailable' });
+  });
+
+  it('こちらの誤りである 4xx は投げ直さない', async () => {
+    fetchImpl.mockResolvedValue(new Response('bad request', { status: 400 }));
+    const { decisions } = await judge({ retryBaseMs: 0 }).evaluateMany(dossiers(1));
+
+    expect(fetchImpl).toHaveBeenCalledTimes(1);
+    expect(decisions[0]?.decision).toMatchObject({ kind: 'unavailable' });
+  });
+
+  it('同時に投げる数を上限まで絞る', async () => {
+    let inFlight = 0;
+    let peak = 0;
+    fetchImpl.mockImplementation(
+      () =>
+        new Promise((resolve) => {
+          inFlight += 1;
+          peak = Math.max(peak, inFlight);
+          setTimeout(() => {
+            inFlight -= 1;
+            resolve(ok());
+          }, 5);
+        }),
+    );
+
+    await judge({ maxConcurrency: 3 }).evaluateMany(dossiers(10));
+    expect(peak).toBeLessThanOrEqual(3);
+  });
+
+  it('同時実行を絞っても全員分の判定を順番どおり返す', async () => {
+    const { decisions } = await judge({ maxConcurrency: 2 }).evaluateMany(dossiers(5));
+    expect(decisions).toHaveLength(5);
+    for (const d of decisions) expect(d.decision.kind).toBe('decided');
+  });
+
+  it('retry-after が秒数ならその秒数だけ待つ（指数で増やさない）', async () => {
+    let call = 0;
+    fetchImpl.mockImplementation(() => {
+      call += 1;
+      return Promise.resolve(
+        call <= 2 ? new Response('busy', { status: 429, headers: { 'retry-after': '0.05' } }) : ok(),
+      );
+    });
+
+    const startedAt = Date.now();
+    const { decisions } = await judge({ retryBaseMs: 10_000 }).evaluateMany(dossiers(1));
+
+    expect(decisions[0]?.decision.kind).toBe('decided');
+    expect(Date.now() - startedAt).toBeLessThan(1000);
+  });
+
+  it('retry-after が HTTP 日付でも解釈する', async () => {
+    let call = 0;
+    fetchImpl.mockImplementation(() => {
+      call += 1;
+      return Promise.resolve(
+        call === 1
+          ? new Response('busy', {
+              status: 429,
+              headers: { 'retry-after': new Date(Date.now() + 50).toUTCString() },
+            })
+          : ok(),
+      );
+    });
+
+    const { decisions } = await judge({ retryBaseMs: 10_000 }).evaluateMany(dossiers(1));
+    expect(decisions[0]?.decision.kind).toBe('decided');
+  });
+
+  it('壊れた retry-after は無視して指数バックオフに落とす', async () => {
+    let call = 0;
+    fetchImpl.mockImplementation(() => {
+      call += 1;
+      return Promise.resolve(
+        call === 1 ? new Response('busy', { status: 429, headers: { 'retry-after': 'soon' } }) : ok(),
+      );
+    });
+
+    const startedAt = Date.now();
+    const { decisions } = await judge({ retryBaseMs: 40 }).evaluateMany(dossiers(1));
+
+    expect(decisions[0]?.decision.kind).toBe('decided');
+    expect(Date.now() - startedAt).toBeGreaterThanOrEqual(35);
+  });
+
+  it('retry-after が長すぎるときは待たずに諦める', async () => {
+    fetchImpl.mockResolvedValue(
+      new Response('busy', { status: 429, headers: { 'retry-after': '120' } }),
+    );
+
+    const startedAt = Date.now();
+    const { decisions } = await judge({ maxRetries: 2 }).evaluateMany(dossiers(1));
+
+    expect(Date.now() - startedAt).toBeLessThan(2000);
+    expect(decisions[0]?.decision).toMatchObject({ kind: 'unavailable' });
+  });
+
+  it('リトライの総時間が予算を超えたら諦める', async () => {
+    fetchImpl.mockResolvedValue(new Response('busy', { status: 429 }));
+
+    const startedAt = Date.now();
+    await judge({ maxRetries: 10, retryBaseMs: 200, retryBudgetMs: 600 }).evaluateMany(dossiers(1));
+
+    expect(Date.now() - startedAt).toBeLessThan(2500);
   });
 
   it('判定不能でもレイテンシは記録する', async () => {

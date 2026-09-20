@@ -4,7 +4,7 @@ import JevDemo from '../islands/JevDemo.js';
 export default createRoute((c) =>
   c.render(
     <main class="mx-auto max-w-3xl px-4 py-8">
-      <h1 class="text-3xl font-bold">Jev だけで 100 人</h1>
+      <h1 class="text-3xl font-bold">Jev だけの審査</h1>
       <p class="mt-2 mb-6 opacity-70">
         人間が 1 人に 1 分かける審査を、AI が何秒で終わらせるか。
       </p>
@@ -15,6 +15,6 @@ export default createRoute((c) =>
         </a>
       </div>
     </main>,
-    { title: 'Jev だけで 100 人' },
+    { title: 'Jev だけの審査' },
   ),
 );

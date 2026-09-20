@@ -16,7 +16,7 @@ interface Row {
   readonly latencyMs: number;
 }
 
-const TOTAL = 100;
+const TOTAL = 10;
 const BATCH = 10;
 const HUMAN_SECONDS_PER_PASSENGER = 60;
 
@@ -104,8 +104,9 @@ export default function JevDemo() {
 
       {done === 0 ? (
         <p class="mt-6 opacity-70">
-          空港の 1 日分に相当する {TOTAL} 人を、Jev が何秒で裁くかを見る。乗客はシードから毎回
-          新しく生成される。
+          1 シフト分の乗客 {TOTAL} 人を Jev が何秒で裁くかを見る。乗客はシードから毎回新しく
+          生成される。Jev の呼び出しには 30 秒あたり 10 件のレート制限があるので、続けて回す
+          場合は少し間を空けてください。
         </p>
       ) : (
         <>
