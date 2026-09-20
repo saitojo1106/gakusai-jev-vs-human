@@ -1,6 +1,7 @@
 import {
   buildReveal,
   generatePassenger,
+  LEADERBOARD_SIZE,
   PASSENGERS_PER_SHIFT,
   summarizeShift,
   validateAirportName,
@@ -21,7 +22,7 @@ import { AppError } from '../errors.js';
 import type { UsecaseDeps } from '../ports.js';
 
 const RESULT_ID_ATTEMPTS = 8;
-const DEFAULT_RANKING_LIMIT = 50;
+const DEFAULT_RANKING_LIMIT = LEADERBOARD_SIZE;
 
 const unavailable = (reason: string): TimedJudgeDecision => ({
   decision: { kind: 'unavailable', reason },
@@ -198,7 +199,7 @@ export const createUsecases = (deps: UsecaseDeps) => {
     },
 
     getRanking: async (input: { limit?: number; airport?: string }) => {
-      const limit = Math.min(Math.max(input.limit ?? DEFAULT_RANKING_LIMIT, 1), 100);
+      const limit = Math.min(Math.max(input.limit ?? DEFAULT_RANKING_LIMIT, 1), LEADERBOARD_SIZE);
       const airport = input.airport === undefined ? undefined : validateAirportName(input.airport);
       if (airport !== undefined && typeof airport !== 'string') return [];
       return deps.leaderboard.top(limit, airport);

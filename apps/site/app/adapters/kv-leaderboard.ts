@@ -1,10 +1,11 @@
 import type { LeaderboardStore } from '@game/application';
 import { leaderboardSchema } from '@game/contracts';
+import { LEADERBOARD_SIZE } from '@game/domain';
 import type { AirportName, LeaderboardEntry } from '@game/domain';
 import { parseOrNull } from './kv-json.js';
 
 export const BOARD_KEY = 'board:top';
-export const MAX_BOARD_ENTRIES = 100;
+export const MAX_BOARD_ENTRIES = LEADERBOARD_SIZE;
 
 const byRank = (a: LeaderboardEntry, b: LeaderboardEntry): number =>
   b.points - a.points || Date.parse(b.finishedAt) - Date.parse(a.finishedAt);

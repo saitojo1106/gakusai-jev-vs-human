@@ -1,4 +1,4 @@
-import { PASSENGERS_PER_SHIFT } from '@game/domain';
+import { LEADERBOARD_SIZE, PASSENGERS_PER_SHIFT } from '@game/domain';
 import type { AirportName, Confidence, HumanDecision, LeaderboardEntry, ResultId } from '@game/domain';
 import { beforeEach, describe, expect, it } from 'vitest';
 import { FakeJudge } from '../fakes/fake-judge.js';
@@ -183,11 +183,18 @@ describe('getRanking', () => {
     expect(ranking.map((e) => e.resultId)).toEqual(['high', 'mid', 'low']);
   });
 
-  it('既定は 50 件まで', async () => {
+  it('既定は 20 件まで', async () => {
     for (let i = 0; i < 60; i += 1) {
       await leaderboard.add(entry({ resultId: `r${i}` as ResultId, points: i }));
     }
-    expect(await usecases.getRanking({})).toHaveLength(50);
+    expect(await usecases.getRanking({})).toHaveLength(LEADERBOARD_SIZE);
+  });
+
+  it('20 件より多く要求されても 20 件までに丸める', async () => {
+    for (let i = 0; i < 60; i += 1) {
+      await leaderboard.add(entry({ resultId: `r${i}` as ResultId, points: i }));
+    }
+    expect(await usecases.getRanking({ limit: 100 })).toHaveLength(LEADERBOARD_SIZE);
   });
 
   it('空港名で絞り込める', async () => {

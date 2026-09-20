@@ -1,6 +1,7 @@
 import { TONE_LABELS } from '@game/domain/display';
 import type { InterviewExchange, QuestionId } from '@game/domain';
 import { useEffect, useRef, useState } from 'hono/jsx';
+import { conversationOrder } from './interview-order.js';
 
 const TYPING_MS = 700;
 
@@ -57,7 +58,7 @@ export const InterviewPanel = ({
     if (el !== null) el.scrollTop = el.scrollHeight;
   }, [asked.length, answered.length]);
 
-  const shown = exchanges.filter((exchange) => asked.includes(exchange.id));
+  const shown = conversationOrder(exchanges, asked);
   const remaining = exchanges.filter((exchange) => !asked.includes(exchange.id));
 
   return (

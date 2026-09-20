@@ -7,3 +7,5 @@ export const AIRPORT_NAME_MAX_LENGTH = 20;
 export const FOLLOW_UP_UNLOCKED_AFTER = 3;
 
 export const REFERENCE_DATE = '2026-09-20';
+
+export const LEADERBOARD_SIZE = 20;

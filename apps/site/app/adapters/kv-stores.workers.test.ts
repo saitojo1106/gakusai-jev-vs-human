@@ -10,6 +10,7 @@ import type {
   ShiftRecord,
   ShiftResult,
 } from '@game/domain';
+import { LEADERBOARD_SIZE } from '@game/domain';
 import { env } from 'cloudflare:test';
 import { beforeEach, describe, expect, it } from 'vitest';
 import { KvLeaderboard } from './kv-leaderboard.js';
@@ -204,14 +205,24 @@ describe('KvLeaderboard', () => {
     expect(keys.map((k) => k.name)).toEqual(['board:top']);
   });
 
-  it('100 件を超えたら下位から捨てる', async () => {
-    for (let i = 0; i < 120; i += 1) {
+  it('20 件を超えたら下位から捨てる', async () => {
+    for (let i = 0; i < 40; i += 1) {
       await board().add(entry({ resultId: `r${i}` as ResultId, points: i }));
     }
     const stored = JSON.parse((await env.GAME_KV.get('board:top')) ?? '[]');
-    expect(stored).toHaveLength(100);
-    expect(stored[0].points).toBe(119);
-    expect(stored[99].points).toBe(20);
+    expect(stored).toHaveLength(LEADERBOARD_SIZE);
+    expect(stored[0].points).toBe(39);
+    expect(stored.at(-1).points).toBe(20);
+  });
+
+  it('21 位以下は KV から消えていて、あとから取り出せない', async () => {
+    for (let i = 0; i < 30; i += 1) {
+      await board().add(entry({ resultId: `r${i}` as ResultId, points: i }));
+    }
+    const kept = (await board().top(LEADERBOARD_SIZE)).map((e) => e.resultId);
+    expect(kept).toHaveLength(LEADERBOARD_SIZE);
+    expect(kept).not.toContain('r9');
+    expect(await board().top(100)).toHaveLength(LEADERBOARD_SIZE);
   });
 
   it('件数を絞って返す', async () => {
