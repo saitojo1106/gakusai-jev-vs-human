@@ -1,5 +1,7 @@
-import { PASSENGERS_PER_SHIFT } from '@game/domain/display';
+import { PASSENGERS_PER_SHIFT, PASSENGER_IMAGES } from '@game/domain/display';
 import { useEffect, useState } from 'hono/jsx';
+import { PreparingCheckpoint } from '../components/PreparingCheckpoint.js';
+import { goTo, preloadImage } from './browser.js';
 
 export interface JevTimings {
   readonly perPassengerMs: readonly number[];
@@ -10,6 +12,9 @@ export interface JevTimings {
 const REPLAY_SPEED = 4;
 const MIN_REPLAY_MS = 1500;
 const MAX_REPLAY_MS = 6000;
+const PREPARE_TIMEOUT_MS = 12_000;
+
+const CHECKPOINT_ASSETS: readonly string[] = [...PASSENGER_IMAGES, '/img/bg/bg_checkpoint.webp'];
 
 const seconds = (ms: number): string => (ms / 1000).toFixed(2);
 
@@ -30,9 +35,13 @@ const LANES = [
 export default function JevSorting({ shiftId, jev }: { shiftId: string; jev: JevTimings }) {
   const [landed, setLanded] = useState<number[]>([]);
   const [sealed, setSealed] = useState(false);
+  const [preparing, setPreparing] = useState(false);
+  const [loaded, setLoaded] = useState(0);
+  const [ready, setReady] = useState(false);
 
   const delays = replayDelays(jev.perPassengerMs);
-  const done = landed.length >= jev.perPassengerMs.length;
+  const sorted = landed.length >= jev.perPassengerMs.length;
+  const playUrl = `/play/${shiftId}/0`;
 
   useEffect(() => {
     const timers = delays.map((delay, index) =>
@@ -45,10 +54,42 @@ export default function JevSorting({ shiftId, jev }: { shiftId: string; jev: Jev
     };
   }, []);
 
+  const prepare = () => {
+    if (preparing) return;
+    setPreparing(true);
+
+    let done = 0;
+    const settle = () => {
+      done += 1;
+      setLoaded(done);
+      if (done >= CHECKPOINT_ASSETS.length) setReady(true);
+    };
+
+    for (const src of CHECKPOINT_ASSETS) preloadImage(src, settle);
+
+    setTimeout(() => setReady(true), PREPARE_TIMEOUT_MS);
+  };
+
+  useEffect(() => {
+    if (ready) goTo(playUrl);
+  }, [ready]);
+
   const skip = () => {
     setLanded(jev.perPassengerMs.map((_, i) => i));
     setSealed(true);
   };
+
+  if (preparing) {
+    return (
+      <section class="flex flex-col items-center gap-6">
+        <h1 class="text-3xl font-bold sm:text-4xl">配置につきます</h1>
+        <PreparingCheckpoint loaded={loaded} total={CHECKPOINT_ASSETS.length} />
+        <a href={playUrl} class="link link-primary text-sm">
+          待たずに進む
+        </a>
+      </section>
+    );
+  }
 
   return (
     <section>
@@ -87,7 +128,7 @@ export default function JevSorting({ shiftId, jev }: { shiftId: string; jev: Jev
       </div>
 
       <p class="mt-5 min-h-12 text-lg">
-        {done ? (
+        {sorted ? (
           <>
             Jev: {PASSENGERS_PER_SHIFT} 人を{' '}
             <span class="font-bold text-primary">{seconds(jev.totalMs)} 秒</span>
@@ -105,10 +146,10 @@ export default function JevSorting({ shiftId, jev }: { shiftId: string; jev: Jev
         実時間 {seconds(jev.totalMs)} 秒。速すぎて見えないので、再生だけ引き伸ばしています。
       </p>
 
-      {done ? (
-        <a href={`/play/${shiftId}/0`} class="btn btn-primary btn-lg">
+      {sorted ? (
+        <button type="button" class="btn btn-primary btn-lg" onClick={prepare}>
           あなたの番です。配置につく →
-        </a>
+        </button>
       ) : (
         <button type="button" class="btn btn-ghost" onClick={skip}>
           スキップ

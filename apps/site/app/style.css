@@ -81,3 +81,27 @@ body {
 @utility animate-land {
   animation: land 0.22s ease-out;
 }
+
+.loader {
+  --loader-color-frame: var(--color-base-content);
+  --loader-color-fill: var(--color-primary);
+  --loader-size: 2.5px;
+
+  display: block;
+  position: relative;
+  height: calc(12 * var(--loader-size));
+  width: 100%;
+  border: calc(1 * var(--loader-size)) solid var(--loader-color-frame);
+  border-radius: calc(10 * var(--loader-size));
+  overflow: hidden;
+}
+
+.loader > span {
+  position: absolute;
+  left: 0;
+  top: 0;
+  height: 100%;
+  width: 0;
+  background: var(--loader-color-fill);
+  transition: width 0.25s ease-out;
+}

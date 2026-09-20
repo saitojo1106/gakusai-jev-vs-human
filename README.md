@@ -121,9 +121,9 @@ KV アダプタのテストは Miniflare 上で走る（`--project site-workers`
 
 | 種別 | ファイル名 | 枚数 | 仕様 |
 | --- | --- | --- | --- |
-| 乗客イラスト | `img/passengers/passenger_{archetypeId}_{mood}.png` | 8 × 3 = 24（揃っている） | 全身・正面やや斜め・背景透過・1024×1536 |
-| レベルカード | `img/levels/level_{1..5}.png` | 5 | 1200×630、右 40% を空ける（後からスコアを重ねる） |
-| 背景 | `img/bg/bg_checkpoint.png` / `img/bg/bg_title.png` | 2 | 1920×1080 |
+| 乗客イラスト | `img/passengers/passenger_{archetypeId}_{mood}.webp` | 8 × 3 = 24（揃っている） | 全身・正面やや斜め・背景透過・1024×1536 |
+| レベルカード | `img/levels/level_{1..5}.webp` | 5 | 1200×630、右 40% を空ける（後からスコアを重ねる） |
+| 背景 | `img/bg/bg_checkpoint.webp` / `img/bg/bg_title.webp` | 2 | 1920×1080 |
 | Jev アバター | `jev_avatar_{idle,scanning,win,lose}.png` | 4 | 監視カメラ型ロボット |
 | 上司 | `supervisor_{neutral,angry}.png` | 2 | 苦情演出 |
 | スタンプ | `stamp_pass.png` / `stamp_detain.png` | 2 | 判定演出 |
@@ -135,7 +135,18 @@ KV アダプタのテストは Miniflare 上で走る（`--project site-workers`
 
 特定の民族・宗教・国籍を「怪しく見える」方向に描かせない。怪しさは服装の不一致と態度だけで表現する。国籍と居住歴は架空国のみを使う。
 
-書類・X 線ビュー・HUD・スコア・QR コードはコードで描くので画像は不要。1 枚 300KB 以下、合計 20MB 以内。
+書類・X 線ビュー・HUD・スコア・QR コードはコードで描くので画像は不要。
+
+Codex が出す PNG は 1 枚 1.1〜1.5MB あるので、`public/img/` に置くのは WebP に変換したものだけにする。
+PNG の原本は `apps/site/assets-src/`（gitignore 済み・配信対象外）に退避する。変換は次のとおり。
+
+```bash
+cwebp -q 82 -resize 640 0 in.png -o out.webp    # 乗客（画面では最大 220px 幅）
+cwebp -q 85 -resize 1200 0 in.png -o out.webp   # レベルカード（OG 用）
+cwebp -q 80 -resize 1920 0 in.png -o out.webp   # 背景
+```
+
+これで合計 42MB が 2.0MB、最大でも 103KB に収まる。
 
 ## Jev の実測（2026-09-20、typesafe-ai/jev）
 

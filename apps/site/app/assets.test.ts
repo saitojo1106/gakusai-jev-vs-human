@@ -2,7 +2,7 @@ import { LEVEL_IMAGES, PASSENGER_IMAGES } from '@game/domain';
 import { describe, expect, it } from 'vitest';
 
 const present = new Set(
-  Object.keys(import.meta.glob('../public/img/**/*.png')).map((path) =>
+  Object.keys(import.meta.glob('../public/img/**/*.webp')).map((path) =>
     path.replace('../public', ''),
   ),
 );
@@ -17,7 +17,7 @@ describe('画像アセット', () => {
   });
 
   it('タイトルと検査場の背景がある', () => {
-    for (const path of ['/img/bg/bg_title.png', '/img/bg/bg_checkpoint.png']) {
+    for (const path of ['/img/bg/bg_title.webp', '/img/bg/bg_checkpoint.webp']) {
       expect(present.has(path)).toBe(true);
     }
   });

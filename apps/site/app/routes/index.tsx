@@ -3,7 +3,7 @@ import StartShift from '../islands/StartShift.js';
 
 export default createRoute((c) =>
   c.render(
-    <main class="hero min-h-screen bg-[url('/img/bg/bg_title.png')] bg-cover bg-center">
+    <main class="hero min-h-screen bg-[url('/img/bg/bg_title.webp')] bg-cover bg-center">
       <div class="hero-overlay bg-base-100/85" />
       <div class="hero-content text-center">
         <div class="max-w-xl">
@@ -19,5 +19,6 @@ export default createRoute((c) =>
         </div>
       </div>
     </main>,
+    { preloadImages: ['/img/bg/bg_title.webp'] },
   ),
 );

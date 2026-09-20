@@ -10,12 +10,13 @@ declare module 'hono' {
         description?: string;
         image?: string;
         canonical?: string;
+        preloadImages?: readonly string[];
       },
     ): Response;
   }
 }
 
-export default jsxRenderer(({ children, title, description, image, canonical }) => {
+export default jsxRenderer(({ children, title, description, image, canonical, preloadImages }) => {
   const pageTitle = title === undefined ? '保安検査 vs Jev' : `${title} | 保安検査 vs Jev`;
   const summary = description ?? '空港の保安検査官として乗客 10 人を審査し、AI 判定モデル Jev と勝負する。';
 
@@ -44,6 +45,9 @@ export default jsxRenderer(({ children, title, description, image, canonical }) 
             <meta property="og:url" content={canonical} />
           </>
         )}
+        {(preloadImages ?? []).map((href) => (
+          <link rel="preload" as="image" href={href} key={href} />
+        ))}
         <Link href="/app/style.css" rel="stylesheet" />
         <Script src="/app/client.ts" />
       </head>

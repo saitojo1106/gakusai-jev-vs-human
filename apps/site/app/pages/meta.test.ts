@@ -40,7 +40,7 @@ describe('buildResultMeta', () => {
   it('OG 画像はレベルカードの絶対 URL', () => {
     for (const level of [1, 2, 3, 4, 5] as const satisfies readonly Level[]) {
       const meta = buildResultMeta(result({ level }), origin);
-      expect(meta.image).toBe(`${origin}/img/levels/level_${level}.png`);
+      expect(meta.image).toBe(`${origin}/img/levels/level_${level}.webp`);
     }
   });
 

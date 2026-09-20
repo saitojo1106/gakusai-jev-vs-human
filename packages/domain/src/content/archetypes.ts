@@ -38,8 +38,8 @@ export const moodOf = (demeanor: Demeanor): IllustrationMood => {
 };
 
 export const passengerImage = (archetype: ArchetypeId, demeanor: Demeanor): string =>
-  `/img/passengers/passenger_${archetype}_${moodOf(demeanor)}.png`;
+  `/img/passengers/passenger_${archetype}_${moodOf(demeanor)}.webp`;
 
 export const PASSENGER_IMAGES: readonly string[] = ARCHETYPES.flatMap((a) =>
-  ILLUSTRATION_MOODS.map((mood) => `/img/passengers/passenger_${a.id}_${mood}.png`),
+  ILLUSTRATION_MOODS.map((mood) => `/img/passengers/passenger_${a.id}_${mood}.webp`),
 );

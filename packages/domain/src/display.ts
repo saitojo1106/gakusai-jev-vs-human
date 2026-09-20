@@ -19,7 +19,7 @@ import type {
 
 export { PASSENGERS_PER_SHIFT } from './constants.js';
 export { LEVELS, type LevelCard } from './content/levels.js';
-export { moodOf, passengerImage } from './content/archetypes.js';
+export { moodOf, passengerImage, PASSENGER_IMAGES } from './content/archetypes.js';
 export { PURPOSE_LABELS };
 
 export const ITEM_LABELS: Readonly<Record<string, string>> = Object.fromEntries(

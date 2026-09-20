@@ -3,7 +3,14 @@ export interface KeyEventLike {
   preventDefault(): void;
 }
 
+interface LoadableImage {
+  onload: (() => void) | null;
+  onerror: (() => void) | null;
+  src: string;
+}
+
 interface BrowserGlobals {
+  Image: new () => LoadableImage;
   addEventListener(type: 'keydown', listener: (event: KeyEventLike) => void): void;
   removeEventListener(type: 'keydown', listener: (event: KeyEventLike) => void): void;
   readonly location: { href: string };
@@ -34,5 +41,16 @@ export const writeSession = (key: string, value: unknown): void => {
     browser.sessionStorage.setItem(key, JSON.stringify(value));
   } catch {
     return;
+  }
+};
+
+export const preloadImage = (src: string, done: () => void): void => {
+  try {
+    const image = new browser.Image();
+    image.onload = done;
+    image.onerror = done;
+    image.src = src;
+  } catch {
+    done();
   }
 };
