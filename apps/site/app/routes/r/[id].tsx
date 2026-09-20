@@ -51,17 +51,22 @@ export default createRoute(async (c) => {
 
   return c.render(
     <main class="mx-auto max-w-2xl px-4 py-8">
-      <div class="card border border-base-300 bg-base-200">
-        <figure>
-          <img src={card.image} alt={`Lv.${card.level} ${card.title}`} class="w-full" />
-        </figure>
-        <div class="card-body items-center text-center">
-          <h1 class="card-title text-3xl">
-            Lv.{card.level} {card.title}
-          </h1>
-          <p class="opacity-70">{result.airport}</p>
-          <p class="text-primary">「{card.catchphrase}」</p>
+      <div class="hover-3d w-full">
+        <div class="card border border-base-300 bg-base-200">
+          <figure>
+            <img src={card.image} alt={`Lv.${card.level} ${card.title}`} class="w-full" />
+          </figure>
+          <div class="card-body items-center text-center">
+            <h1 class="card-title text-3xl">
+              Lv.{card.level} {card.title}
+            </h1>
+            <p class="opacity-70">{result.airport}</p>
+            <p class="text-primary">「{card.catchphrase}」</p>
+          </div>
         </div>
+        {Array.from({ length: 8 }, (_, i) => (
+          <div key={i} aria-hidden="true" />
+        ))}
       </div>
 
       <div class="stats stats-vertical mt-6 w-full border border-base-300 bg-base-200 sm:stats-horizontal">

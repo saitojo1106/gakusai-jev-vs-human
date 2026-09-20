@@ -15,7 +15,6 @@ import {
   PHOTO_MATCH_LABELS,
   PURPOSE_LABELS,
   STABILITY_LABELS,
-  TONE_LABELS,
   TRIP_TYPE_LABELS,
   formatDuration,
   passengerImage,
@@ -29,6 +28,7 @@ import type {
   Verdict,
 } from '@game/domain';
 import { useEffect, useState } from 'hono/jsx';
+import { InterviewPanel } from '../components/InterviewPanel.js';
 import { XrayPanel } from '../components/XrayPanel.js';
 import { browser, goTo, readSession, writeSession } from './browser.js';
 import { numberValue } from './dom.js';
@@ -466,49 +466,16 @@ export default function Checkpoint({ shiftId, index }: { shiftId: string; index:
                 </div>
 
                 {rightTab === 'interview' ? (
-                  <>
-                    {dossier.interview
-                      .filter((exchange) => asked.includes(exchange.id))
-                      .map((exchange) => (
-                        <div class="border-l-2 border-base-300 pl-3" key={exchange.id}>
-                          <p class="text-sm opacity-60">Q {exchange.question}</p>
-                          <p>A {exchange.answer}</p>
-                          <span
-                            class={`badge badge-xs ${
-                              exchange.tone === 'steady' ? 'badge-ghost' : 'badge-warning'
-                            }`}
-                          >
-                            {TONE_LABELS[exchange.tone]}
-                          </span>
-                        </div>
-                      ))}
-
-                    <h3 class="text-xs tracking-widest opacity-60">まだ聞いていない質問</h3>
-                    <div class="flex flex-col gap-2">
-                      {dossier.interview
-                        .filter((exchange) => !asked.includes(exchange.id))
-                        .map((exchange) => {
-                          const locked = exchange.id === 'follow_up' && !followUpUnlocked;
-                          return (
-                            <button
-                              type="button"
-                              key={exchange.id}
-                              class={`btn btn-sm justify-start ${
-                                exchange.id === 'follow_up' ? 'btn-outline btn-warning' : 'btn-ghost'
-                              }`}
-                              disabled={locked}
-                              onClick={() => ask(exchange.id)}
-                            >
-                              {exchange.id === 'follow_up'
-                                ? locked
-                                  ? '追い質問 ⚡（3 問聞くと解放）'
-                                  : '追い質問 ⚡'
-                                : exchange.question}
-                            </button>
-                          );
-                        })}
-                    </div>
-                  </>
+                  <InterviewPanel
+                    exchanges={dossier.interview}
+                    asked={asked}
+                    portrait={passengerImage(
+                      dossier.appearance.archetype,
+                      dossier.appearance.demeanor,
+                    )}
+                    followUpUnlocked={followUpUnlocked}
+                    onAsk={ask}
+                  />
                 ) : null}
 
                 {rightTab === 'mouth' ? (
