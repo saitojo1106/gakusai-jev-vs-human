@@ -1,0 +1,14 @@
+{
+  "name": "@game/application",
+  "version": "0.0.0",
+  "private": true,
+  "type": "module",
+  "exports": {
+    ".": "./src/index.ts",
+    "./fakes": "./src/fakes/index.ts"
+  },
+  "dependencies": {
+    "@game/contracts": "workspace:*",
+    "@game/domain": "workspace:*"
+  }
+}

@@ -16,3 +16,5 @@ export * from './services/level.js';
 export * from './services/summary.js';
 export * from './services/airport-name.js';
 export * from './services/share.js';
+export * from './services/judge-state.js';
+export * from './services/reveal.js';
