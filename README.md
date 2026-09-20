@@ -184,6 +184,10 @@ KV ネームスペース `GAME_KV` は作成済みで、id は [wrangler.jsonc](
 ローカル開発は Miniflare のローカル KV を使う（`remote` は付けない）。付けると開発中のテストプレイが
 本番のランキングに混ざる。
 
+`apps/site/public/.assetsignore` で、サーバーのバンドル（`index.js`）とビルドのマニフェストを静的アセット
+から外している。`assets.directory` が `./dist` なので、外さないと `/index.js` が公開されて生成器と
+シグナルの確率が読めてしまう。API キーは実行時の環境変数なのでバンドルには入らない。
+
 GitHub Actions は `master` への push で型チェック・テスト・ビルドを回し、デプロイまで行う。リポジトリの
 secret に `CLOUDFLARE_API_TOKEN` と `CLOUDFLARE_ACCOUNT_ID` を登録すること。
 
