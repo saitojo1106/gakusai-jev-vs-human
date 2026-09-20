@@ -10,7 +10,7 @@ export default createRoute((c) =>
           <span class="badge">対戦相手: Jev（TypeSafe AI）</span>
         </p>
         <p>
-          <a href="/ranking">ランキングを見る</a>
+          <a href="/ranking">ランキングを見る</a> ・ <a href="/demo">Jev だけで 100 人</a>
         </p>
       </div>
     </main>,

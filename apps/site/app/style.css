@@ -391,6 +391,85 @@ ul.plain {
   margin-top: -0.6rem;
 }
 
+.demo-counters {
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  gap: 0.8rem;
+  margin: 1.2rem 0;
+}
+
+.demo-counters > div {
+  border: 1px solid var(--navy-line);
+  border-radius: var(--radius);
+  background: var(--navy-soft);
+  padding: 0.8rem 0.4rem;
+  text-align: center;
+}
+
+.demo-value {
+  display: block;
+  font-size: clamp(1.3rem, 5vw, 2rem);
+  font-weight: 700;
+  font-variant-numeric: tabular-nums;
+  line-height: 1.2;
+}
+
+.demo-label {
+  display: block;
+  font-size: 0.75rem;
+  color: var(--sand-dim);
+}
+
+.demo-punch {
+  border-left: 3px solid var(--orange);
+  padding-left: 1rem;
+  font-size: 1.05rem;
+}
+
+.demo-dots {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 4px;
+  margin: 1.2rem 0;
+}
+
+.demo-dot {
+  display: inline-block;
+  width: 0.85rem;
+  height: 0.85rem;
+  border-radius: 3px;
+  background: var(--navy-line);
+  vertical-align: middle;
+}
+
+.demo-dot.correct_pass {
+  background: #2f6b46;
+}
+
+.demo-dot.correct_detain {
+  background: var(--green);
+}
+
+.demo-dot.false_detain {
+  background: var(--orange);
+}
+
+.demo-dot.missed_threat {
+  background: var(--red);
+}
+
+.demo-dot.unavailable {
+  background: var(--sand-dim);
+}
+
+.demo-legend {
+  font-size: 0.8rem;
+  display: flex;
+  align-items: center;
+  gap: 0.3rem;
+  flex-wrap: wrap;
+}
+
 .demo-grid {
   display: grid;
   grid-template-columns: repeat(5, 1fr);

@@ -1,6 +1,7 @@
 import { z } from 'zod';
 import {
   airportNameSchema,
+  verdictSchema,
   dossierSchema,
   humanDecisionSchema,
   leaderboardSchema,
@@ -45,6 +46,36 @@ export const rankingQuerySchema = z.object({
 
 export const rankingResponseSchema = leaderboardSchema;
 
+export const DEMO_MAX_PASSENGERS = 200;
+export const DEMO_MAX_BATCH = 20;
+
+export const demoBatchRequestSchema = z.object({
+  seed: z.string().min(1).max(64),
+  from: z.number().int().min(0).max(DEMO_MAX_PASSENGERS - 1),
+  count: z.number().int().min(1).max(DEMO_MAX_BATCH),
+});
+
+export const demoRowSchema = z.object({
+  index: z.number().int().min(0),
+  isThreat: z.boolean(),
+  verdict: verdictSchema.nullable(),
+  verdictConfidence: z.number().nullable(),
+  outcome: z.enum([
+    'correct_pass',
+    'correct_detain',
+    'false_detain',
+    'missed_threat',
+    'unavailable',
+  ]),
+  points: z.number(),
+  latencyMs: z.number().min(0),
+});
+
+export const demoBatchResponseSchema = z.object({
+  rows: z.array(demoRowSchema),
+  wallMs: z.number().min(0),
+});
+
 export const apiErrorSchema = z.object({
   error: z.enum([
     'invalid_airport',
@@ -69,3 +100,6 @@ export type GetResultResponse = z.infer<typeof getResultResponseSchema>;
 export type RankingQuery = z.infer<typeof rankingQuerySchema>;
 export type RankingResponse = z.infer<typeof rankingResponseSchema>;
 export type ApiError = z.infer<typeof apiErrorSchema>;
+export type DemoBatchRequest = z.infer<typeof demoBatchRequestSchema>;
+export type DemoRow = z.infer<typeof demoRowSchema>;
+export type DemoBatchResponse = z.infer<typeof demoBatchResponseSchema>;

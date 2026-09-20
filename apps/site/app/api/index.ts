@@ -1,6 +1,7 @@
 import { AppError, createUsecases, isAppError } from '@game/application';
 import type { AppErrorCode, UsecaseDeps } from '@game/application';
 import {
+  demoBatchRequestSchema,
   startShiftRequestSchema,
   submitVerdictRequestSchema,
   rankingQuerySchema,
@@ -76,6 +77,13 @@ export const createApi = (deps: UsecaseDeps) => {
     .get('/result/:id', async (c) =>
       c.json(await usecases.getResult({ resultId: c.req.param('id') })),
     )
+    .post('/demo/batch', async (c) => {
+      const parsed = demoBatchRequestSchema.safeParse(await jsonBody(c.req.raw));
+      if (!parsed.success) {
+        return c.json({ error: 'invalid_demo', message: 'demo payload is invalid' }, 400);
+      }
+      return c.json(await usecases.runJevBatch(parsed.data));
+    })
     .get('/ranking', async (c) => {
       const query = rankingQuerySchema.safeParse({
         ...(c.req.query('airport') === undefined ? {} : { airport: c.req.query('airport') }),
