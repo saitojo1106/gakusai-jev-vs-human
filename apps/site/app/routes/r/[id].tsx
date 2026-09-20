@@ -53,14 +53,24 @@ export default createRoute(async (c) => {
     <main class="mx-auto max-w-2xl px-4 py-8">
       <div class="hover-3d w-full">
         <div class="card border border-base-300 bg-base-200">
-          <figure>
+          <figure class="relative @container">
             <img src={card.image} alt={`Lv.${card.level} ${card.title}`} class="w-full" />
+            <div class="absolute inset-y-0 right-0 flex w-2/5 flex-col items-center justify-center gap-[1cqi] px-[2cqi] text-center">
+              <p class="w-full truncate text-[4cqi] opacity-70">{result.airport}</p>
+              <p
+                class={`text-[12cqi] font-bold leading-none tabular-nums ${
+                  human.points >= 0 ? 'text-success' : 'text-error'
+                }`}
+              >
+                {human.points}
+              </p>
+              <p class="text-[3.4cqi] opacity-70">vs Jev {jev.points}</p>
+            </div>
           </figure>
           <div class="card-body items-center text-center">
             <h1 class="card-title text-3xl">
               Lv.{card.level} {card.title}
             </h1>
-            <p class="opacity-70">{result.airport}</p>
             <p class="text-primary">「{card.catchphrase}」</p>
           </div>
         </div>
