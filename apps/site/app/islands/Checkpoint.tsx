@@ -1,7 +1,6 @@
 import {
   ANOMALY_LABELS,
   ASPECT_LABELS,
-  BODY_SCAN_LABELS,
   COUNTRY_LABELS,
   CRIMINAL_LABELS,
   DEMEANOR_LABELS,
@@ -30,6 +29,7 @@ import type {
   Verdict,
 } from '@game/domain';
 import { useEffect, useState } from 'hono/jsx';
+import { XrayPanel } from '../components/XrayPanel.js';
 import { browser, goTo, readSession, writeSession } from './browser.js';
 import { numberValue } from './dom.js';
 
@@ -537,60 +537,12 @@ export default function Checkpoint({ shiftId, index }: { shiftId: string; index:
                 ) : null}
 
                 {rightTab === 'xray' ? (
-                  <>
-                    {bodyScan === null ? (
-                      <>
-                        <div role="alert" class="alert alert-warning alert-soft py-2">
-                          <span>
-                            X 線検査は <b>1 シフトに 1 回だけ</b>。使いどころを選んでください。
-                          </span>
-                        </div>
-                        <div
-                          class={`self-start ${
-                            xrayUsedOn === null
-                              ? scanning
-                                ? 'aura aura-holo aura-lg duration-[1.5s]'
-                                : 'aura aura-lg text-warning'
-                              : ''
-                          }`}
-                        >
-                          <button
-                            type="button"
-                            class="btn btn-warning"
-                            onClick={runXray}
-                            disabled={scanning || xrayUsedOn !== null}
-                          >
-                            {scanning ? (
-                              <>
-                                <span class="loading loading-bars loading-sm" />
-                                スキャン中…
-                              </>
-                            ) : xrayUsedOn !== null ? (
-                              `使用済み（${xrayUsedOn + 1} 人目）`
-                            ) : (
-                              'この乗客に X 線検査を使う'
-                            )}
-                          </button>
-                        </div>
-                      </>
-                    ) : bodyScan === 'clear' || bodyScan === 'unreadable' ? (
-                      <>
-                        <div role="alert" class="alert alert-soft">
-                          <span>所見: {BODY_SCAN_LABELS[bodyScan]}</span>
-                        </div>
-                        <p class="text-sm opacity-60">このシフトの X 線検査はもう使えません。</p>
-                      </>
-                    ) : (
-                      <>
-                        <div class="aura aura-glow aura-xl block text-error duration-[2s]">
-                          <div role="alert" class="alert alert-error">
-                            <span class="font-bold">所見: {BODY_SCAN_LABELS[bodyScan]}</span>
-                          </div>
-                        </div>
-                        <p class="text-sm opacity-60">このシフトの X 線検査はもう使えません。</p>
-                      </>
-                    )}
-                  </>
+                  <XrayPanel
+                    finding={bodyScan}
+                    usedOn={xrayUsedOn}
+                    scanning={scanning}
+                    onScan={runXray}
+                  />
                 ) : null}
 
                 {rightTab === 'record' ? (

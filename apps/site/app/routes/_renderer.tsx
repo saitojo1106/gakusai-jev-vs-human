@@ -45,7 +45,7 @@ export default jsxRenderer(({ children, title, description, image, canonical }) 
           </>
         )}
         <Link href="/app/style.css" rel="stylesheet" />
-        <Script src="/app/client.ts" async />
+        <Script src="/app/client.ts" />
       </head>
       <body class="min-h-screen bg-base-100 text-base-content">{children}</body>
     </html>

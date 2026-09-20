@@ -4,8 +4,26 @@
     {
       "name": "site",
       "runtimeExecutable": "pnpm",
-      "runtimeArgs": ["--filter", "@game/site", "dev"],
+      "runtimeArgs": [
+        "--filter",
+        "@game/site",
+        "dev"
+      ],
       "port": 5173
+    },
+    {
+      "name": "site-prod",
+      "runtimeExecutable": "pnpm",
+      "runtimeArgs": [
+        "--filter",
+        "@game/site",
+        "exec",
+        "wrangler",
+        "dev",
+        "--port",
+        "8787"
+      ],
+      "port": 8787
     }
   ]
 }

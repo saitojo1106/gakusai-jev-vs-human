@@ -4,7 +4,7 @@
   "main": "./dist/index.js",
   "compatibility_date": "2026-08-22",
   "compatibility_flags": ["nodejs_compat"],
-  "assets": { "directory": "./dist/static", "binding": "ASSETS" },
+  "assets": { "directory": "./dist", "binding": "ASSETS" },
   "kv_namespaces": [{ "binding": "GAME_KV", "id": "<namespace id>" }],
   "observability": { "enabled": true },
   "vars": {

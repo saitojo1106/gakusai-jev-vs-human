@@ -69,12 +69,33 @@ AI_GATEWAY_API_KEY=...
 pnpm --filter @game/site dev
 ```
 
+## ビルド成果物の置き場所
+
+`<Script>` はクライアントビルドのマニフェストを **`dist/.vite/manifest.json`** から読み、そこに書かれた
+`static/client-xxx.js` を script タグに出す。したがって次の 3 つが噛み合っている必要がある。
+
+| 設定 | 値 | 理由 |
+| --- | --- | --- |
+| クライアントビルドの `outDir` | 既定のまま（`dist`） | 上書きするとマニフェストの位置がずれて script タグが出なくなる |
+| クライアントビルドの `assetsDir` | honox 既定の `static` | マニフェストの `file` が `static/...` になる |
+| `wrangler.jsonc` の `assets.directory` | `./dist` | `/static/client-xxx.js` で配信される |
+
+`assets.directory` を `./dist/static` にすると、同じファイルが `/client-xxx.js` で配信されて script タグが
+404 になる。どちらの取り違えでも**ページは表示されるがボタンが一切反応しない**（hydration が起きない）
+ので気づきにくい。
+
 ## 開発コマンド
 
 ```bash
 pnpm test           # 全パッケージのテスト
 pnpm test:watch     # ウォッチ
 pnpm typecheck      # 型チェック
+```
+
+本番ビルドで動かすには次の順で実行する。クライアントを先に作らないとマニフェストができない。
+
+```bash
+pnpm --filter @game/site build && pnpm --filter @game/site exec wrangler dev
 ```
 
 KV アダプタのテストは Miniflare 上で走る（`--project site-workers`）。`@cloudflare/vitest-pool-workers` が vitest 4 系までなので、vitest は 4 に固定している。workerd が対応する最新の互換性日付に合わせて `compatibility_date` は `2026-08-22`。
