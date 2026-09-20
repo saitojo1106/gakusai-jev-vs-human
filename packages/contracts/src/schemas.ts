@@ -169,6 +169,7 @@ export const judgeDecisionSchema = z.discriminatedUnion('kind', [
   z.object({
     kind: z.literal('decided'),
     verdict: verdictSchema,
+    verdictConfidence: probability,
     threatProbability: probability,
     suspicion: z.number().min(0).max(4),
     aspects: aspectsSchema,

@@ -13,9 +13,14 @@ const aspects: Readonly<Record<AspectId, number>> = {
   background: 0.5,
 };
 
-const decided = (verdict: 'pass' | 'detain', threatProbability: number): JudgeDecision => ({
+const decided = (
+  verdict: 'pass' | 'detain',
+  verdictConfidence: number,
+  threatProbability = 0.5,
+): JudgeDecision => ({
   kind: 'decided',
   verdict,
+  verdictConfidence,
   threatProbability,
   suspicion: 2,
   aspects,
@@ -96,17 +101,19 @@ describe('score', () => {
 });
 
 describe('scoreJudge', () => {
-  it('Jev の threatProbability を確信度として人間と同じ式で採点する', () => {
+  it('判定そのものへの確信度で人間と同じ式で採点する', () => {
     expect(scoreJudge(threat, decided('detain', 1))).toEqual(score(threat, 'detain', 1));
-    expect(scoreJudge(benign, decided('pass', 0))).toEqual(score(benign, 'pass', 1));
+    expect(scoreJudge(benign, decided('pass', 0.9))).toEqual(score(benign, 'pass', 0.9));
   });
 
-  it('通過判定のときは 1 − threatProbability を確信度として扱う', () => {
-    expect(scoreJudge(benign, decided('pass', 0.1)).points).toBe(score(benign, 'pass', 0.9).points);
+  it('確信度が 0.5 未満でも 0.5 として扱う', () => {
+    expect(scoreJudge(benign, decided('pass', 0.2)).points).toBe(score(benign, 'pass', 0.5).points);
   });
 
-  it('判定と確率が食い違う場合は確信度 0.5 として扱う', () => {
-    expect(scoreJudge(benign, decided('pass', 0.8)).points).toBe(score(benign, 'pass', 0.5).points);
+  it('ハイジャック確率が低くても、拘束判定への確信度が高ければボーナスが付く', () => {
+    const jev = decided('detain', 0.99, 0.06);
+    expect(scoreJudge(threat, jev).points).toBe(score(threat, 'detain', 0.99).points);
+    expect(scoreJudge(threat, jev).points).toBeGreaterThan(score(threat, 'detain', 0.5).points);
   });
 
   it('判定不能は 0 点で、見逃しにもハイジャックにもしない', () => {

@@ -11,9 +11,14 @@ const dossiers = (count: number): readonly Dossier[] =>
 
 const body = (over: Record<string, unknown> = {}) => ({
   answers: {
-    verdict: { choice: 'detain' },
+    verdict: {
+      type: 'choice',
+      choice: 'detain',
+      probabilities: { detain: 0.99, pass: 0.01 },
+      confidence: 0.98,
+    },
     threat: { probability: 0.91 },
-    suspicion: { score: 3.2 },
+    suspicion: { score: 3.2, confidence: 0.79 },
     documents: { probability: 0.82 },
     belongings: { probability: 0.61 },
     interview: { probability: 0.3 },
@@ -53,6 +58,7 @@ describe('JevGatewayJudge', () => {
     expect(decisions[0]?.decision).toEqual({
       kind: 'decided',
       verdict: 'detain',
+      verdictConfidence: 0.99,
       threatProbability: 0.91,
       suspicion: 3.2,
       aspects: {
@@ -199,6 +205,41 @@ describe('JevGatewayJudge', () => {
 
     const { decisions } = await judge().evaluateMany(dossiers(3));
     expect(decisions.map((d) => d.decision.kind)).toEqual(['decided', 'unavailable', 'decided']);
+  });
+
+  it('選んだ側の確率を判定への確信度にする', async () => {
+    fetchImpl.mockResolvedValue(
+      ok(
+        body({
+          answers: {
+            verdict: {
+              type: 'choice',
+              choice: 'pass',
+              probabilities: { detain: 0.12, pass: 0.88 },
+              confidence: 0.9,
+            },
+            threat: { probability: 0.12 },
+            suspicion: { score: 0.4 },
+            documents: { probability: 0.1 },
+            belongings: { probability: 0.1 },
+            interview: { probability: 0.1 },
+            body: { probability: 0.1 },
+            background: { probability: 0.1 },
+          },
+        }),
+      ),
+    );
+    const { decisions } = await judge().evaluateMany(dossiers(1));
+    expect(decisions[0]?.decision).toMatchObject({ verdict: 'pass', verdictConfidence: 0.88 });
+  });
+
+  it('確率がなければ confidence を使い、それもなければ 0.5 にする', async () => {
+    const withoutProbabilities = body();
+    delete (withoutProbabilities.answers.verdict as Record<string, unknown>).probabilities;
+    fetchImpl.mockResolvedValue(ok(withoutProbabilities));
+
+    const { decisions } = await judge().evaluateMany(dossiers(1));
+    expect(decisions[0]?.decision).toMatchObject({ verdictConfidence: 0.98 });
   });
 
   it('判定不能でもレイテンシは記録する', async () => {

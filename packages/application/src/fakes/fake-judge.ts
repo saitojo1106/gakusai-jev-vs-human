@@ -64,9 +64,12 @@ export const fakeDecision = (dossier: Dossier): Extract<JudgeDecision, { kind: '
     aspects.background * 0.1;
   const threatProbability = clamp(weighted * 1.9, 0.02, 0.98);
 
+  const verdict = threatProbability >= 0.5 ? 'detain' : 'pass';
+
   return {
     kind: 'decided',
-    verdict: threatProbability >= 0.5 ? 'detain' : 'pass',
+    verdict,
+    verdictConfidence: verdict === 'detain' ? threatProbability : 1 - threatProbability,
     threatProbability,
     suspicion: clamp(threatProbability * 4, 0, 4),
     aspects,

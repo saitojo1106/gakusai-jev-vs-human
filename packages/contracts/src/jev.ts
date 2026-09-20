@@ -47,9 +47,16 @@ export const jevEvaluateRequestSchema = z.object({
 
 export const jevEvaluateResponseSchema = z.object({
   answers: z.object({
-    verdict: z.object({ choice: z.enum(['pass', 'detain']) }),
+    verdict: z.object({
+      choice: z.enum(['pass', 'detain']),
+      probabilities: z.object({ pass: probability, detain: probability }).optional(),
+      confidence: probability.optional(),
+    }),
     threat: probabilityAnswer,
-    suspicion: z.object({ score: z.number().min(0).max(JEV_SUSPICION_CRITERIA.length - 1) }),
+    suspicion: z.object({
+      score: z.number().min(0).max(JEV_SUSPICION_CRITERIA.length - 1),
+      confidence: probability.optional(),
+    }),
     documents: probabilityAnswer,
     belongings: probabilityAnswer,
     interview: probabilityAnswer,

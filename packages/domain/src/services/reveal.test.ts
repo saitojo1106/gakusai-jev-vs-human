@@ -47,7 +47,7 @@ describe('buildReveal', () => {
     const reveal = buildReveal(
       passenger,
       human(),
-      timed({ kind: 'decided', verdict: 'pass', threatProbability: 0.2, suspicion: 1, aspects }),
+      timed({ kind: 'decided', verdict: 'pass', verdictConfidence: 0.8, threatProbability: 0.2, suspicion: 1, aspects }),
     );
     expect(reveal.index).toBe(passenger.index);
     expect(reveal.truth).toEqual(passenger.truth);
@@ -58,7 +58,7 @@ describe('buildReveal', () => {
     const reveal = buildReveal(
       passenger,
       human({ verdict: 'pass' }),
-      timed({ kind: 'decided', verdict: 'detain', threatProbability: 0.9, suspicion: 3, aspects }),
+      timed({ kind: 'decided', verdict: 'detain', verdictConfidence: 0.9, threatProbability: 0.9, suspicion: 3, aspects }),
     );
     expect(reveal.human.outcome).toBe('missed_threat');
     expect(reveal.human.hijackOccurred).toBe(true);

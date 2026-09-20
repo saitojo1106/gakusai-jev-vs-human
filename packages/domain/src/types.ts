@@ -140,6 +140,7 @@ export type JudgeDecision =
   | {
       readonly kind: 'decided';
       readonly verdict: Verdict;
+      readonly verdictConfidence: number;
       readonly threatProbability: number;
       readonly suspicion: number;
       readonly aspects: Readonly<Record<AspectId, number>>;

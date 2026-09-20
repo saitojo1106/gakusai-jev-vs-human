@@ -47,6 +47,7 @@ const reveal = (
         : {
             kind: 'decided',
             verdict: jevOutcome === 'correct_detain' || jevOutcome === 'false_detain' ? 'detain' : 'pass',
+            verdictConfidence: 0.5,
             threatProbability: 0.5,
             suspicion: 2,
             aspects,

@@ -27,11 +27,8 @@ export const score = (truth: Truth, verdict: Verdict, confidence: number): Score
   };
 };
 
-export const judgeConfidence = (decision: Extract<JudgeDecision, { kind: 'decided' }>): number => {
-  const confidence =
-    decision.verdict === 'detain' ? decision.threatProbability : 1 - decision.threatProbability;
-  return confidence < 0.5 ? 0.5 : confidence;
-};
+export const judgeConfidence = (decision: Extract<JudgeDecision, { kind: 'decided' }>): number =>
+  Math.min(1, Math.max(0.5, decision.verdictConfidence));
 
 export const scoreJudge = (truth: Truth, decision: JudgeDecision): Scored => {
   if (decision.kind === 'unavailable') {

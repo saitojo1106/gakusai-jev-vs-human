@@ -495,7 +495,10 @@ function RevealCard({
             <>
               <p>
                 {jev.decision.verdict === 'detain' ? '拘束' : '通過'}・確信度{' '}
-                {jev.decision.threatProbability.toFixed(2)}
+                {Math.round(jev.decision.verdictConfidence * 100)}%
+              </p>
+              <p class="muted">
+                ハイジャック計画の見立て {jev.decision.threatProbability.toFixed(2)}
               </p>
               <p class={`points ${jev.points >= 0 ? 'plus' : 'minus'}`}>
                 {jev.points >= 0 ? '+' : ''}

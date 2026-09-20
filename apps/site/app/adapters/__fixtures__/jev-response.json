@@ -1,0 +1,96 @@
+{
+  "model": "typesafe-ai/jev",
+  "answers": {
+    "verdict": {
+      "type": "choice",
+      "choice": "detain",
+      "probabilities": {
+        "detain": 0.99,
+        "pass": 0.01
+      },
+      "confidence": 0.98
+    },
+    "threat": {
+      "type": "boolean",
+      "probability": 0.06
+    },
+    "suspicion": {
+      "type": "score",
+      "score": 3.75,
+      "probabilities": {
+        "0": 0,
+        "1": 0,
+        "2": 0,
+        "3": 0.25,
+        "4": 0.75
+      },
+      "confidence": 0.79
+    },
+    "documents": {
+      "type": "boolean",
+      "probability": 0.97
+    },
+    "belongings": {
+      "type": "boolean",
+      "probability": 0.79
+    },
+    "interview": {
+      "type": "boolean",
+      "probability": 0.93
+    },
+    "body": {
+      "type": "boolean",
+      "probability": 0.81
+    },
+    "background": {
+      "type": "boolean",
+      "probability": 0.89
+    }
+  },
+  "usage": {
+    "inputTokens": 1508,
+    "outputTokens": 150
+  },
+  "providerMetadata": {
+    "typesafe": {
+      "confidence": {
+        "verdict": 0.98,
+        "suspicion": 0.79
+      }
+    },
+    "gateway": {
+      "routing": {
+        "originalModelId": "typesafe-ai/jev",
+        "resolvedProvider": "typesafe-ai",
+        "fallbacksAvailable": [],
+        "planningReasoning": "System credentials planned for: typesafe-ai. Total execution order: typesafe-ai(system)",
+        "canonicalSlug": "typesafe-ai/jev",
+        "finalProvider": "typesafe-ai",
+        "modelAttemptCount": 1,
+        "modelAttempts": [
+          {
+            "canonicalSlug": "typesafe-ai/jev",
+            "success": true,
+            "providerAttemptCount": 1,
+            "providerAttempts": [
+              {
+                "provider": "typesafe-ai",
+                "credentialType": "system",
+                "success": true,
+                "startTime": 1789891724953,
+                "endTime": 1789891725139,
+                "statusCode": 200
+              }
+            ]
+          }
+        ],
+        "totalProviderAttemptCount": 1
+      },
+      "cost": "0",
+      "marketCost": "0.000063336",
+      "surchargeCost": "0",
+      "gatewayCost": "0",
+      "generationId": "gen_01M2YXRGWVBBB2X8V5GDKZNAVE"
+    }
+  }
+}

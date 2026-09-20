@@ -19,6 +19,7 @@ import { KvShiftStore } from './kv-shift-store.js';
 const decided = {
   kind: 'decided',
   verdict: 'detain',
+  verdictConfidence: 0.98,
   threatProbability: 0.91,
   suspicion: 3,
   aspects: { documents: 0.8, belongings: 0.6, interview: 0.3, body: 0.2, background: 0.1 },

@@ -31,6 +31,7 @@ const roundTrip = <T>(value: T): unknown => JSON.parse(JSON.stringify(value));
 const decided = {
   kind: 'decided',
   verdict: 'detain',
+  verdictConfidence: 0.98,
   threatProbability: 0.91,
   suspicion: 3,
   aspects: { documents: 0.82, belongings: 0.61, interview: 0.3, body: 0.15, background: 0.08 },

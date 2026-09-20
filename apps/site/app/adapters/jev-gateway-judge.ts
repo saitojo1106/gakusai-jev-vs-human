@@ -118,6 +118,10 @@ export class JevGatewayJudge implements JudgePort {
       const decision: JudgeDecision = {
         kind: 'decided',
         verdict: answers.verdict.choice,
+        verdictConfidence:
+          answers.verdict.probabilities?.[answers.verdict.choice] ??
+          answers.verdict.confidence ??
+          0.5,
         threatProbability: answers.threat.probability,
         suspicion: answers.suspicion.score,
         aspects: {

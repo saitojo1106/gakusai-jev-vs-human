@@ -120,7 +120,7 @@ export default createRoute(async (c) => {
             <br />
             Jev:{' '}
             {reveal.jev.decision.kind === 'decided'
-              ? `${reveal.jev.decision.verdict === 'detain' ? '拘束' : '通過'}・確信度 ${reveal.jev.decision.threatProbability.toFixed(2)}（${reveal.jev.points >= 0 ? '+' : ''}${reveal.jev.points}）`
+              ? `${reveal.jev.decision.verdict === 'detain' ? '拘束' : '通過'}・確信度 ${Math.round(reveal.jev.decision.verdictConfidence * 100)}%・ハイジャックの見立て ${reveal.jev.decision.threatProbability.toFixed(2)}（${reveal.jev.points >= 0 ? '+' : ''}${reveal.jev.points}）`
               : '判定不能'}
           </p>
           {reveal.jev.decision.kind === 'decided' ? (

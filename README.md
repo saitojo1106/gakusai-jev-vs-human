@@ -88,7 +88,7 @@ KV アダプタのテストは Miniflare 上で走る（`--project site-workers`
 - [x] `score` / `judgeLevel` / `summarizeShift`（採点・レベル認定）
 - [x] `contracts`（Zod スキーマ）
 - [x] `StartShift` / `SubmitVerdict` / `FinishShift`（Fake で）
-- [x] `JevGatewayJudge`（fetch モック。契約テストは未）
+- [x] `JevGatewayJudge`（fetch モック + 実応答フィクスチャの契約テスト）
 - [x] `KvShiftStore` / `KvResultStore` / `KvLeaderboard`
 - [x] HonoX の API ルート → `/r/:id` の SSR（OG タグ）→ `/ranking`
 - [x] 島（`Checkpoint` と `StartShift`。`JevDemo` は `StartShift` に統合）
@@ -115,6 +115,21 @@ KV アダプタのテストは Miniflare 上で走る（`--project site-workers`
 特定の民族・宗教・国籍を「怪しく見える」方向に描かせない。怪しさは服装の不一致と態度だけで表現する。国籍と居住歴は架空国のみを使う。
 
 書類・X 線ビュー・HUD・スコア・QR コードはコードで描くので画像は不要。1 枚 300KB 以下、合計 20MB 以内。
+
+## Jev の実測（2026-09-20、typesafe-ai/jev）
+
+実際に 1 シフト戦わせた結果。
+
+| 指標 | 値 |
+| --- | --- |
+| 正答 | 8/10（見逃し 1・誤検知 1） |
+| スコア | 96 点 |
+| 所要時間 | 10 人並列で 0.66 秒（1 件あたり約 0.5 秒） |
+| 費用 | 1 リクエスト $0.000063 → 1 シフト約 0.1 円 |
+
+手がかり 3〜4 個の脅威は確実に捕まえ、2 個の脅威は取り逃がした。無害側でも手がかり 2 個の乗客を拘束していて、レッドヘリングが効いている。丁寧に調べた人間なら勝てる強さ。
+
+**確信度の扱いを仕様書から変えた。** 要件定義書 §2 は `threat.probability` を Jev の確信度として使うとしていたが、実際の Jev は「拘束すべき 99%」と答えながら「ハイジャックを計画している確率 6%」を返す。書類偽造の兆候は濃くても、*ハイジャック*という特定の計画の確率は低い、という筋の通った推論で、実測でも脅威に対して 0.01〜0.15 の範囲にしか上がらない。これを確信度に使うと Jev のボーナスが常にゼロになるため、**`verdict.probabilities[choice]`（選んだ側に置いた確率）を確信度**に使い、人間のスライダーと同じ軸で採点している。`threat.probability` は「Jev の見立て」として結果画面に併記する。
 
 ## 未決事項
 
