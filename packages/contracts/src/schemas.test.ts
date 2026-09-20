@@ -11,7 +11,9 @@ import type {
   ShiftResult,
 } from '@game/domain';
 import { describe, expect, it } from 'vitest';
+import { INSPECTED_LABELS } from '@game/domain/display';
 import {
+  INSPECTED_ITEMS,
   dossierSchema,
   jevEvaluateResponseSchema,
   leaderboardEntrySchema,
@@ -76,6 +78,21 @@ describe('dossierSchema', () => {
     const { dossier, truth } = generatePassenger(seed, 0 as PassengerIndex);
     const parsed = dossierSchema.parse({ ...(roundTrip(dossier) as object), truth });
     expect(parsed).not.toHaveProperty('truth');
+  });
+});
+
+describe('INSPECTED_ITEMS', () => {
+  it('調査項目をひとつも取りこぼさない', () => {
+    expect([...INSPECTED_ITEMS].sort()).toEqual(Object.keys(INSPECTED_LABELS).sort());
+  });
+
+  it('すべての調査項目を含む Reveal を読み書きできる', () => {
+    const reveal = {
+      ...buildReveal(0),
+      human: { ...buildReveal(0).human, inspected: [...INSPECTED_ITEMS] },
+      missedByHuman: [...INSPECTED_ITEMS],
+    };
+    expect(revealSchema.parse(roundTrip(reveal))).toEqual(reveal);
   });
 });
 

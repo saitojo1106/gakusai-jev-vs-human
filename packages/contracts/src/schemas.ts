@@ -25,6 +25,7 @@ export const INSPECTED_ITEMS = [
   'mouth',
   'record',
   'residence',
+  'body_scan',
   'question:purpose',
   'question:occupation',
   'question:bag_contents',
@@ -32,6 +33,15 @@ export const INSPECTED_ITEMS = [
   'question:accommodation',
   'question:follow_up',
 ] as const satisfies readonly InspectedItem[];
+
+type MissingInspectedItem = Exclude<InspectedItem, (typeof INSPECTED_ITEMS)[number]>;
+
+export type AllInspectedItemsListed = MissingInspectedItem extends never
+  ? true
+  : ['INSPECTED_ITEMS に足りていない項目があります', MissingInspectedItem];
+
+const _allInspectedItemsListed: AllInspectedItemsListed = true;
+void _allInspectedItemsListed;
 
 const isoDateTime = z.string().min(1);
 const probability = z.number().min(0).max(1);
