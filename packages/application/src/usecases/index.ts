@@ -2,7 +2,6 @@ import {
   buildReveal,
   generatePassenger,
   PASSENGERS_PER_SHIFT,
-  scoreJudge,
   summarizeShift,
   validateAirportName,
 } from '@game/domain';
@@ -180,31 +179,6 @@ export const createUsecases = (deps: UsecaseDeps) => {
       const result = await deps.results.get(input.resultId as ResultId);
       if (result === null) throw new AppError('result_not_found', `no result ${input.resultId}`);
       return result;
-    },
-
-    runJevBatch: async (input: { seed: string; from: number; count: number }) => {
-      const passengers = Array.from({ length: input.count }, (_, i) =>
-        generatePassenger(input.seed as Seed, (input.from + i) as PassengerIndex),
-      );
-      const batch = await deps.judge.evaluateMany(passengers.map((p) => p.dossier));
-
-      const rows = passengers.map((passenger, i) => {
-        const timed = batch.decisions[i] ?? unavailable('missing judgement');
-        const scored = scoreJudge(passenger.truth, timed.decision);
-        return {
-          index: input.from + i,
-          isThreat: passenger.truth.isThreat,
-          verdict: timed.decision.kind === 'decided' ? timed.decision.verdict : null,
-          verdictConfidence:
-            timed.decision.kind === 'decided' ? timed.decision.verdictConfidence : null,
-          outcome: scored.outcome,
-          points: scored.points,
-          latencyMs: timed.latencyMs,
-          reason: timed.decision.kind === 'unavailable' ? timed.decision.reason : null,
-        };
-      });
-
-      return { rows, wallMs: batch.wallMs };
     },
 
     getRanking: async (input: { limit?: number; airport?: string }) => {

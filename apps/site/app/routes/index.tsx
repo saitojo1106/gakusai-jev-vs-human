@@ -11,12 +11,9 @@ export default createRoute((c) =>
           <div class="mt-8 flex flex-wrap items-center justify-center gap-3">
             <span class="badge badge-outline badge-lg">対戦相手: Jev（TypeSafe AI）</span>
           </div>
-          <div class="mt-4 flex flex-wrap items-center justify-center gap-4">
+          <div class="mt-4">
             <a class="link link-primary" href="/ranking">
               ランキングを見る
-            </a>
-            <a class="link link-primary" href="/demo">
-              Jev だけの審査を見る
             </a>
           </div>
         </div>
