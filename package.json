@@ -6,7 +6,8 @@
   "scripts": {
     "test": "vitest run",
     "test:watch": "vitest",
-    "typecheck": "tsc --pretty && tsc -p apps/site --pretty"
+    "typecheck": "tsc --pretty && tsc -p apps/site --pretty",
+    "probe:jev": "node scripts/probe-jev.mjs"
   },
   "devDependencies": {
     "typescript": "^5.9.3",
