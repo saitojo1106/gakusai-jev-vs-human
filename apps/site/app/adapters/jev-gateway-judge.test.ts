@@ -81,8 +81,14 @@ describe('JevGatewayJudge', () => {
     expect(JSON.parse(String(init.body)).model).toBe('typesafe-ai/jev');
   });
 
-  it('ゼロデータ保持を指定する', async () => {
+  it('既定ではゼロデータ保持を要求しない（hobby プランでは使えないため）', async () => {
     await judge().evaluateMany(dossiers(1));
+    const [, init] = fetchImpl.mock.calls[0] as [string, RequestInit];
+    expect(JSON.parse(String(init.body))).not.toHaveProperty('providerOptions');
+  });
+
+  it('明示的に有効にしたときだけゼロデータ保持を要求する', async () => {
+    await judge({ zeroDataRetention: true }).evaluateMany(dossiers(1));
     const [, init] = fetchImpl.mock.calls[0] as [string, RequestInit];
     expect(JSON.parse(String(init.body)).providerOptions.gateway.zeroDataRetention).toBe(true);
   });

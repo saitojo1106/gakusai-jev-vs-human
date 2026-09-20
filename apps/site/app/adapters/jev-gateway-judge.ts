@@ -72,7 +72,7 @@ export class JevGatewayJudge implements JudgePort {
     this.model = options.model ?? 'typesafe-ai/jev';
     this.timeoutMs = options.timeoutMs ?? 3000;
     this.endpoint = options.endpoint ?? JEV_ENDPOINT;
-    this.zeroDataRetention = options.zeroDataRetention ?? true;
+    this.zeroDataRetention = options.zeroDataRetention ?? false;
     this.fetchImpl = options.fetchImpl ?? fetch;
   }
 
@@ -98,7 +98,9 @@ export class JevGatewayJudge implements JudgePort {
           model: this.model,
           state: toJudgeState(dossier),
           questions: QUESTIONS,
-          providerOptions: { gateway: { zeroDataRetention: this.zeroDataRetention } },
+          ...(this.zeroDataRetention
+            ? { providerOptions: { gateway: { zeroDataRetention: true } } }
+            : {}),
         }),
         signal: controller.signal,
       });

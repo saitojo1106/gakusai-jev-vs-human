@@ -53,13 +53,17 @@ packages/
 pnpm install
 ```
 
-Jev を実際に叩くには Vercel AI Gateway の API キーが要る。ローカルでは `apps/site/.dev.vars` に置く。
+Jev を実際に叩くには Vercel AI Gateway の API キーが要る。カード登録済みのアカウントが前提（無料クレジットを使う場合でも必要）。ローカルでは `apps/site/.dev.vars` に置く。
 
 ```
 AI_GATEWAY_API_KEY=...
 ```
 
 キーなしで動かす場合は `JUDGE=fake` で `FakeJudge` に差し替える。キー未設定なら自動で `FakeJudge` になるので、`pnpm --filter @game/site dev` だけで遊べる。
+
+ゼロデータ保持（ZDR）は Vercel の Pro / Enterprise プラン専用なので既定では要求しない。Jev に送るのは生成した架空の乗客データだけで、空港名も個人情報も含まない。Pro 以上のプランで有効にしたい場合は `JEV_ZDR=true` を渡す。
+
+`pnpm probe:jev` で `/v1/evaluate` を 1 回叩き、実応答を `apps/site/app/adapters/__fixtures__/` に保存できる。
 
 ```bash
 pnpm --filter @game/site dev

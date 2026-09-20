@@ -7,6 +7,7 @@ declare namespace Cloudflare {
     JEV_TIMEOUT_MS?: string;
     PUBLIC_ORIGIN?: string;
     JUDGE?: string;
+    JEV_ZDR?: string;
   }
 }
 

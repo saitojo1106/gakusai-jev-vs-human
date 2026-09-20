@@ -12,6 +12,7 @@ export const createJudge = (env: AppBindings): JudgePort => {
     apiKey: env.AI_GATEWAY_API_KEY,
     ...(env.JEV_MODEL === undefined ? {} : { model: env.JEV_MODEL }),
     ...(env.JEV_TIMEOUT_MS === undefined ? {} : { timeoutMs: Number(env.JEV_TIMEOUT_MS) }),
+    zeroDataRetention: env.JEV_ZDR === 'true',
   });
 };
 

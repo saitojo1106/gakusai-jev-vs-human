@@ -107,7 +107,9 @@ const response = await fetch(endpoint, {
     model,
     state,
     questions,
-    providerOptions: { gateway: { zeroDataRetention: true } },
+    ...(process.env.JEV_ZDR === 'true'
+      ? { providerOptions: { gateway: { zeroDataRetention: true } } }
+      : {}),
   }),
 });
 const elapsedMs = Date.now() - startedAt;
