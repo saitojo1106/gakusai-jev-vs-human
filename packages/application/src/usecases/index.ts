@@ -93,6 +93,7 @@ export const createUsecases = (deps: UsecaseDeps) => {
         jev,
         jevWallMs: batch.wallMs,
         human: passengers.map(() => null),
+        xrayUsedOn: null,
         resultId: null,
       });
 
@@ -109,10 +110,25 @@ export const createUsecases = (deps: UsecaseDeps) => {
     servePassenger: async (input: { shiftId: string; index: number }) => {
       const record = await requireShift(deps, input.shiftId);
       const index = requireIndex(input.index);
+      const passenger = generatePassenger(record.seed, index);
       return {
-        dossier: generatePassenger(record.seed, index).dossier,
+        dossier: passenger.dossier,
         decided: record.human[index] != null,
+        xrayUsedOn: record.xrayUsedOn,
+        bodyScan: record.xrayUsedOn === index ? passenger.bodyScan.finding : null,
       };
+    },
+
+    useXray: async (input: { shiftId: string; index: number }) => {
+      const record = await requireShift(deps, input.shiftId);
+      const index = requireIndex(input.index);
+
+      if (record.xrayUsedOn === index) {
+        return { finding: generatePassenger(record.seed, index).bodyScan.finding, usedOn: index };
+      }
+
+      await deps.shifts.useXray(record.shiftId, index);
+      return { finding: generatePassenger(record.seed, index).bodyScan.finding, usedOn: index };
     },
 
     submitVerdict: async (input: {

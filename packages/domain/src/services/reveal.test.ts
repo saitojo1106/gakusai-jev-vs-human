@@ -96,6 +96,7 @@ describe('buildReveal', () => {
           'mouth',
           'record',
           'residence',
+          'body_scan',
           'question:purpose',
           'question:occupation',
           'question:bag_contents',

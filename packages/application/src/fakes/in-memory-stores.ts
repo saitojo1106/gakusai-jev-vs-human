@@ -37,6 +37,17 @@ export class InMemoryShiftStore implements ShiftStore {
     return Promise.resolve(next);
   }
 
+  useXray(id: ShiftId, index: PassengerIndex): Promise<ShiftRecord> {
+    const current = this.records.get(id);
+    if (current === undefined) throw new AppError('shift_not_found', `no shift ${id}`);
+    if (current.xrayUsedOn !== null) {
+      throw new AppError('xray_used', 'the x-ray has already been used in this shift');
+    }
+    const next: ShiftRecord = { ...current, xrayUsedOn: index };
+    this.records.set(id, next);
+    return Promise.resolve(next);
+  }
+
   attachResult(id: ShiftId, resultId: ResultId): Promise<ShiftRecord> {
     const current = this.records.get(id);
     if (current === undefined) throw new AppError('shift_not_found', `no shift ${id}`);

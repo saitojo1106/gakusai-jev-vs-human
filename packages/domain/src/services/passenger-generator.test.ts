@@ -233,6 +233,7 @@ describe('SIGNALS', () => {
       'mouth',
       'record',
       'residence',
+      'body_scan',
       ...QUESTIONS.map((q) => `question:${q.id satisfies QuestionId}`),
     ]);
     for (const signal of SIGNALS) {

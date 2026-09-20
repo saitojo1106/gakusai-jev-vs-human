@@ -4,6 +4,7 @@ import { PURPOSE_LABELS } from './content/questions.js';
 import type {
   AspectId,
   BackgroundRecord,
+  BodyScanFinding,
   BoardingPass,
   Demeanor,
   ForgeryObservation,
@@ -94,6 +95,13 @@ export const MOUTH_LABELS: Readonly<Record<MouthInspection['finding'], string>> 
   refused: '検査を拒否',
 };
 
+export const BODY_SCAN_LABELS: Readonly<Record<BodyScanFinding, string>> = {
+  clear: '異常なし',
+  dense_object: '高密度の物体が体内にある',
+  organic_mass: '不自然な有機物の塊がある',
+  unreadable: '判読できない（体動によるブレ）',
+};
+
 export const CRIMINAL_LABELS: Readonly<Record<BackgroundRecord['criminalHistory'], string>> = {
   none: 'なし',
   minor: '軽微',
@@ -130,6 +138,7 @@ export const INSPECTED_LABELS: Readonly<Record<InspectedItem, string>> = {
   mouth: '口内検査',
   record: '照会',
   residence: '居住歴',
+  body_scan: 'X 線検査',
   'question:purpose': '質問「渡航の目的」',
   'question:occupation': '質問「職業」',
   'question:bag_contents': '質問「荷物の中身」',

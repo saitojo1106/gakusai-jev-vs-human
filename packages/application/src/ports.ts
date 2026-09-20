@@ -29,6 +29,7 @@ export interface ShiftStore {
     index: PassengerIndex,
     decision: HumanDecision,
   ): Promise<ShiftRecord>;
+  useXray(id: ShiftId, index: PassengerIndex): Promise<ShiftRecord>;
   attachResult(id: ShiftId, resultId: ResultId): Promise<ShiftRecord>;
 }
 

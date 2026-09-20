@@ -33,6 +33,7 @@ const record = (over: Partial<ShiftRecord> = {}): ShiftRecord => ({
   jev: Array.from({ length: 10 }, () => ({ decision: decided, latencyMs: 210 })),
   jevWallMs: 830,
   human: Array.from({ length: 10 }, () => null),
+  xrayUsedOn: null,
   resultId: null,
   ...over,
 });

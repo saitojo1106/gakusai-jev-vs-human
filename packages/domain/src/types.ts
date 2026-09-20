@@ -77,6 +77,12 @@ export interface InterviewExchange {
   readonly unlockedAfter: number;
 }
 
+export type BodyScanFinding = 'clear' | 'dense_object' | 'organic_mass' | 'unreadable';
+
+export interface BodyScan {
+  readonly finding: BodyScanFinding;
+}
+
 export interface MouthInspection {
   readonly finding: 'clear' | 'candy' | 'dental_work' | 'wrapped_object' | 'refused';
 }
@@ -115,6 +121,7 @@ export interface Passenger {
   readonly index: PassengerIndex;
   readonly dossier: Dossier;
   readonly truth: Truth;
+  readonly bodyScan: BodyScan;
 }
 
 export type InspectedItem =
@@ -125,6 +132,7 @@ export type InspectedItem =
   | 'mouth'
   | 'record'
   | 'residence'
+  | 'body_scan'
   | `question:${QuestionId}`;
 
 export interface HumanDecision {
@@ -181,6 +189,7 @@ export interface ShiftRecord {
   readonly jev: readonly TimedJudgeDecision[];
   readonly jevWallMs: number;
   readonly human: readonly (HumanDecision | null)[];
+  readonly xrayUsedOn: PassengerIndex | null;
   readonly resultId: ResultId | null;
 }
 

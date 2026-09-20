@@ -23,9 +23,23 @@ export const startShiftResponseSchema = z.object({
   }),
 });
 
+export const bodyScanFindingSchema = z.enum([
+  'clear',
+  'dense_object',
+  'organic_mass',
+  'unreadable',
+]);
+
 export const servePassengerResponseSchema = z.object({
   dossier: dossierSchema,
   decided: z.boolean(),
+  xrayUsedOn: z.number().int().min(0).max(9).nullable(),
+  bodyScan: bodyScanFindingSchema.nullable(),
+});
+
+export const useXrayResponseSchema = z.object({
+  finding: bodyScanFindingSchema,
+  usedOn: z.number().int().min(0).max(9),
 });
 
 export const submitVerdictRequestSchema = humanDecisionSchema;
@@ -53,6 +67,7 @@ export const apiErrorSchema = z.object({
     'passenger_not_found',
     'already_decided',
     'shift_incomplete',
+    'xray_used',
     'result_not_found',
     'rate_limited',
   ]),
@@ -62,6 +77,7 @@ export const apiErrorSchema = z.object({
 export type StartShiftRequest = z.infer<typeof startShiftRequestSchema>;
 export type StartShiftResponse = z.infer<typeof startShiftResponseSchema>;
 export type ServePassengerResponse = z.infer<typeof servePassengerResponseSchema>;
+export type UseXrayResponse = z.infer<typeof useXrayResponseSchema>;
 export type SubmitVerdictRequest = z.infer<typeof submitVerdictRequestSchema>;
 export type SubmitVerdictResponse = z.infer<typeof submitVerdictResponseSchema>;
 export type FinishShiftResponse = z.infer<typeof finishShiftResponseSchema>;

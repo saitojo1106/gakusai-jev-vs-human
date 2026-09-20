@@ -1,6 +1,7 @@
 import {
   ANOMALY_LABELS,
   ASPECT_LABELS,
+  BODY_SCAN_LABELS,
   COUNTRY_LABELS,
   CRIMINAL_LABELS,
   DEMEANOR_LABELS,
@@ -20,7 +21,14 @@ import {
   formatDuration,
   passengerImage,
 } from '@game/domain/display';
-import type { Dossier, InspectedItem, QuestionId, Reveal, Verdict } from '@game/domain';
+import type {
+  BodyScanFinding,
+  Dossier,
+  InspectedItem,
+  QuestionId,
+  Reveal,
+  Verdict,
+} from '@game/domain';
 import { useEffect, useState } from 'hono/jsx';
 import { browser, goTo, readSession, writeSession } from './browser.js';
 import { numberValue } from './dom.js';
@@ -28,7 +36,7 @@ import { numberValue } from './dom.js';
 const FOLLOW_UP_UNLOCKED_AFTER = 3;
 
 type CenterTab = 'identity' | 'boarding_pass' | 'belongings';
-type RightTab = 'interview' | 'mouth' | 'record';
+type RightTab = 'interview' | 'mouth' | 'xray' | 'record';
 
 interface Totals {
   human: number;
@@ -52,6 +60,9 @@ export default function Checkpoint({ shiftId, index }: { shiftId: string; index:
   const [asked, setAsked] = useState<QuestionId[]>([]);
   const [passportInspected, setPassportInspected] = useState(false);
   const [mouthChecked, setMouthChecked] = useState(false);
+  const [xrayUsedOn, setXrayUsedOn] = useState<number | null>(null);
+  const [bodyScan, setBodyScan] = useState<BodyScanFinding | null>(null);
+  const [scanning, setScanning] = useState(false);
   const [confidence, setConfidence] = useState(0.8);
   const [inspected, setInspected] = useState<InspectedItem[]>(['identity']);
   const [startedAt] = useState(Date.now());
@@ -61,6 +72,9 @@ export default function Checkpoint({ shiftId, index }: { shiftId: string; index:
   const [submitting, setSubmitting] = useState(false);
   const [totals, setTotals] = useState<Totals>({ human: 0, jev: 0 });
 
+  const mark = (item: InspectedItem) =>
+    setInspected((current) => (current.includes(item) ? current : [...current, item]));
+
   useEffect(() => {
     setTotals(readSession<Totals>(totalsKey(shiftId), { human: 0, jev: 0 }));
     void (async () => {
@@ -69,8 +83,15 @@ export default function Checkpoint({ shiftId, index }: { shiftId: string; index:
         setFailed(true);
         return;
       }
-      const body = (await response.json()) as { dossier: Dossier };
+      const body = (await response.json()) as {
+        dossier: Dossier;
+        xrayUsedOn: number | null;
+        bodyScan: BodyScanFinding | null;
+      };
       setDossier(body.dossier);
+      setXrayUsedOn(body.xrayUsedOn);
+      setBodyScan(body.bodyScan);
+      if (body.bodyScan !== null) mark('body_scan');
     })();
   }, [shiftId, index]);
 
@@ -80,9 +101,6 @@ export default function Checkpoint({ shiftId, index }: { shiftId: string; index:
     return () => clearInterval(timer);
   }, [reveal, startedAt]);
 
-  const mark = (item: InspectedItem) =>
-    setInspected((current) => (current.includes(item) ? current : [...current, item]));
-
   const openCenter = (tab: CenterTab) => {
     setCenterTab(tab);
     mark(tab);
@@ -91,6 +109,22 @@ export default function Checkpoint({ shiftId, index }: { shiftId: string; index:
   const openRight = (tab: RightTab) => {
     setRightTab(tab);
     if (tab === 'record') mark('record');
+  };
+
+  const runXray = async () => {
+    if (scanning || xrayUsedOn !== null) return;
+    setScanning(true);
+
+    const response = await fetch(`/api/shift/${shiftId}/passenger/${index}/xray`, {
+      method: 'POST',
+    });
+    if (response.ok) {
+      const body = (await response.json()) as { finding: BodyScanFinding; usedOn: number };
+      setBodyScan(body.finding);
+      setXrayUsedOn(body.usedOn);
+      mark('body_scan');
+    }
+    setScanning(false);
   };
 
   const ask = (id: QuestionId) => {
@@ -164,6 +198,7 @@ export default function Checkpoint({ shiftId, index }: { shiftId: string; index:
       if (event.key === '3') openCenter('belongings');
       if (event.key === 'q' || event.key === 'Q') openRight('interview');
       if (event.key === 'm' || event.key === 'M') openRight('mouth');
+      if (event.key === 'x' || event.key === 'X') openRight('xray');
       if (event.key === 'r' || event.key === 'R') openRight('record');
     };
 
@@ -406,6 +441,14 @@ export default function Checkpoint({ shiftId, index }: { shiftId: string; index:
                   <button
                     type="button"
                     role="tab"
+                    class={`tab ${rightTab === 'xray' ? 'tab-active' : ''}`}
+                    onClick={() => openRight('xray')}
+                  >
+                    X 線 (X)
+                  </button>
+                  <button
+                    type="button"
+                    role="tab"
                     class={`tab ${rightTab === 'record' ? 'tab-active' : ''}`}
                     onClick={() => openRight('record')}
                   >
@@ -481,6 +524,52 @@ export default function Checkpoint({ shiftId, index }: { shiftId: string; index:
                         所見: {MOUTH_LABELS[dossier.mouth.finding]}
                       </p>
                     ) : null}
+                  </>
+                ) : null}
+
+                {rightTab === 'xray' ? (
+                  <>
+                    {bodyScan === null ? (
+                      <>
+                        <div role="alert" class="alert alert-warning alert-soft py-2">
+                          <span>
+                            X 線検査は <b>1 シフトに 1 回だけ</b>。使いどころを選んでください。
+                          </span>
+                        </div>
+                        <button
+                          type="button"
+                          class="btn btn-warning btn-outline"
+                          onClick={runXray}
+                          disabled={scanning || xrayUsedOn !== null}
+                        >
+                          {scanning ? (
+                            <>
+                              <span class="loading loading-spinner loading-sm" />
+                              スキャン中…
+                            </>
+                          ) : xrayUsedOn !== null ? (
+                            `使用済み（${xrayUsedOn + 1} 人目に使いました）`
+                          ) : (
+                            'この乗客に X 線検査を使う'
+                          )}
+                        </button>
+                      </>
+                    ) : (
+                      <>
+                        <p
+                          class={
+                            bodyScan === 'clear' || bodyScan === 'unreadable'
+                              ? 'opacity-60'
+                              : 'font-bold text-warning'
+                          }
+                        >
+                          所見: {BODY_SCAN_LABELS[bodyScan]}
+                        </p>
+                        <p class="text-sm opacity-60">
+                          このシフトの X 線検査はもう使えません。
+                        </p>
+                      </>
+                    )}
                   </>
                 ) : null}
 

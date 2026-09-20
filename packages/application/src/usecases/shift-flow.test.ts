@@ -216,3 +216,61 @@ describe('submitVerdict', () => {
     expect(result.reveal.jev.points).toBe(0);
   });
 });
+
+describe('useXray', () => {
+  beforeEach(async () => {
+    await usecases.startShift({ airport: 'ぼくの空港' });
+  });
+
+  it('所見を返し、使った乗客を記録する', async () => {
+    const result = await usecases.useXray({ shiftId: 'shift001', index: 3 });
+    const expected = generatePassenger('seed0001' as Seed, 3 as PassengerIndex);
+
+    expect(result.usedOn).toBe(3);
+    expect(result.finding).toBe(expected.bodyScan.finding);
+    expect(shifts.records.get('shift001')?.xrayUsedOn).toBe(3);
+  });
+
+  it('1 シフトに 1 回しか使えない', async () => {
+    await usecases.useXray({ shiftId: 'shift001', index: 0 });
+
+    await expect(usecases.useXray({ shiftId: 'shift001', index: 1 })).rejects.toMatchObject({
+      code: 'xray_used',
+    });
+    expect(shifts.records.get('shift001')?.xrayUsedOn).toBe(0);
+  });
+
+  it('同じ乗客に対してなら何度呼んでも同じ所見を返す', async () => {
+    const first = await usecases.useXray({ shiftId: 'shift001', index: 2 });
+    const second = await usecases.useXray({ shiftId: 'shift001', index: 2 });
+
+    expect(second).toEqual(first);
+  });
+
+  it('存在しないシフトと範囲外の乗客番号を弾く', async () => {
+    await expect(usecases.useXray({ shiftId: 'nope', index: 0 })).rejects.toMatchObject({
+      code: 'shift_not_found',
+    });
+    await expect(usecases.useXray({ shiftId: 'shift001', index: 10 })).rejects.toMatchObject({
+      code: 'passenger_not_found',
+    });
+  });
+
+  it('servePassenger は使った乗客にだけ所見を返す', async () => {
+    await usecases.useXray({ shiftId: 'shift001', index: 4 });
+
+    const scanned = await usecases.servePassenger({ shiftId: 'shift001', index: 4 });
+    const other = await usecases.servePassenger({ shiftId: 'shift001', index: 5 });
+
+    expect(scanned.xrayUsedOn).toBe(4);
+    expect(scanned.bodyScan).not.toBeNull();
+    expect(other.xrayUsedOn).toBe(4);
+    expect(other.bodyScan).toBeNull();
+  });
+
+  it('まだ使っていなければ所見も使用先も返さない', async () => {
+    const response = await usecases.servePassenger({ shiftId: 'shift001', index: 0 });
+    expect(response.xrayUsedOn).toBeNull();
+    expect(response.bodyScan).toBeNull();
+  });
+});

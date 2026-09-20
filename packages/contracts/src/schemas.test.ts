@@ -144,7 +144,12 @@ describe('submitVerdictRequestSchema', () => {
 describe('servePassengerResponseSchema', () => {
   it('Dossier と判定済みフラグを返す', () => {
     const { dossier } = generatePassenger(seed, 0 as PassengerIndex);
-    const value = { dossier: roundTrip(dossier), decided: false };
+    const value = {
+      dossier: roundTrip(dossier),
+      decided: false,
+      xrayUsedOn: null,
+      bodyScan: null,
+    };
     expect(servePassengerResponseSchema.parse(value).decided).toBe(false);
   });
 });
@@ -181,6 +186,7 @@ describe('shiftRecordSchema', () => {
       jev: [{ decision: decided, latencyMs: 210 }],
       jevWallMs: 830,
       human: [null],
+      xrayUsedOn: null,
       resultId: null,
     };
     expect(shiftRecordSchema.parse(roundTrip(record))).toEqual(record);

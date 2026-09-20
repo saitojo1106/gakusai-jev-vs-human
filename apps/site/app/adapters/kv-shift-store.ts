@@ -46,6 +46,16 @@ export class KvShiftStore implements ShiftStore {
     return next;
   }
 
+  async useXray(id: ShiftId, index: PassengerIndex): Promise<ShiftRecord> {
+    const current = await this.require(id);
+    if (current.xrayUsedOn !== null) {
+      throw new AppError('xray_used', 'the x-ray has already been used in this shift');
+    }
+    const next: ShiftRecord = { ...current, xrayUsedOn: index };
+    await this.create(next);
+    return next;
+  }
+
   async attachResult(id: ShiftId, resultId: ResultId): Promise<ShiftRecord> {
     const next: ShiftRecord = { ...(await this.require(id)), resultId };
     await this.create(next);

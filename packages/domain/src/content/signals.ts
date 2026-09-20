@@ -88,6 +88,16 @@ export const SIGNALS: readonly Signal[] = [
     },
   },
   {
+    id: 'body_scan_anomaly' as SignalId,
+    label: '体内に隠されたもの',
+    pThreat: 0.45,
+    pBenign: 0.04,
+    revealedBy: ['body_scan'],
+    apply: (draft, rng) => {
+      draft.bodyScan.finding = rng.bool(0.6) ? 'dense_object' : 'organic_mass';
+    },
+  },
+  {
     id: 'watchlist_hit' as SignalId,
     label: '監視リスト該当',
     pThreat: 0.35,

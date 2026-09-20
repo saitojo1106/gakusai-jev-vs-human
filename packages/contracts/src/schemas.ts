@@ -225,6 +225,7 @@ export const shiftRecordSchema = z.object({
   jev: z.array(timedJudgeDecisionSchema),
   jevWallMs: z.number().min(0),
   human: z.array(humanDecisionSchema.nullable()),
+  xrayUsedOn: passengerIndexSchema.nullable(),
   resultId: resultIdSchema.nullable(),
 });
 

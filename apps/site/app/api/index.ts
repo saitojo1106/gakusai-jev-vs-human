@@ -15,6 +15,7 @@ const STATUS: Readonly<Record<AppErrorCode, ContentfulStatusCode>> = {
   passenger_not_found: 404,
   already_decided: 409,
   shift_incomplete: 409,
+  xray_used: 409,
   result_not_found: 404,
   rate_limited: 429,
 };
@@ -70,6 +71,14 @@ export const createApi = (deps: UsecaseDeps) => {
       });
       return c.json(outcome.reveal, outcome.kind === 'already' ? 409 : 200);
     })
+    .post('/shift/:id/passenger/:n/xray', async (c) =>
+      c.json(
+        await usecases.useXray({
+          shiftId: c.req.param('id'),
+          index: passengerIndex(c.req.param('n')),
+        }),
+      ),
+    )
     .post('/shift/:id/finish', async (c) =>
       c.json(await usecases.finishShift({ shiftId: c.req.param('id') })),
     )

@@ -97,6 +97,7 @@ const buildBase = (rng: Prng): DossierDraft => {
     },
     interview: [],
     mouth: { finding: rng.pick(['clear', 'clear', 'clear', 'candy', 'dental_work'] as const) },
+    bodyScan: { finding: rng.bool(0.08) ? 'unreadable' : 'clear' },
     record: {
       criminalHistory: 'none',
       watchlistHit: false,
@@ -235,7 +236,12 @@ export const generatePassenger = (seed: Seed, index: PassengerIndex): Passenger 
     keySignals: signals.map((s) => s.id),
   };
 
-  return { index, dossier: freezeDossier(draft), truth };
+  return {
+    index,
+    dossier: freezeDossier(draft),
+    truth,
+    bodyScan: { finding: draft.bodyScan.finding },
+  };
 };
 
 export const generateShift = (seed: Seed): readonly Passenger[] =>

@@ -1,5 +1,6 @@
 import type {
   Appearance,
+  BodyScanFinding,
   ArchetypeId,
   BackgroundRecord,
   BoardingPass,
@@ -56,6 +57,7 @@ export interface DossierDraft {
     unlockedAfter: number;
   }[];
   mouth: { finding: MouthInspection['finding'] };
+  bodyScan: { finding: BodyScanFinding };
   record: {
     criminalHistory: BackgroundRecord['criminalHistory'];
     watchlistHit: boolean;
