@@ -299,6 +299,98 @@ ul.plain {
   margin-left: auto;
 }
 
+.sorting h1 {
+  margin-bottom: 1.5rem;
+}
+
+.sorting-lanes {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 1rem;
+  margin: 1.5rem auto;
+  max-width: 560px;
+}
+
+.lane {
+  position: relative;
+  border: 1px solid var(--navy-line);
+  border-radius: var(--radius);
+  background: #0d1729;
+  padding: 0.8rem;
+  min-height: 9rem;
+}
+
+.lane h2 {
+  margin: 0 0 0.6rem;
+  font-size: 0.9rem;
+  letter-spacing: 0.12em;
+  color: var(--sand-dim);
+}
+
+.lane-slots {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.35rem;
+  justify-content: center;
+}
+
+.sealed-card {
+  width: 1.6rem;
+  height: 2.2rem;
+  border-radius: 3px;
+  border: 1px solid var(--navy-line);
+  background: repeating-linear-gradient(
+    135deg,
+    var(--navy-soft),
+    var(--navy-soft) 3px,
+    #223a63 3px,
+    #223a63 6px
+  );
+  animation: land 0.22s ease-out;
+}
+
+@keyframes land {
+  from {
+    transform: translateY(-140px) scale(0.6) rotate(-12deg);
+    opacity: 0;
+  }
+  to {
+    transform: none;
+    opacity: 1;
+  }
+}
+
+.lane.sealed::after {
+  content: '';
+  position: absolute;
+  inset: 0;
+  border-radius: var(--radius);
+  background: rgba(13, 23, 41, 0.86);
+  backdrop-filter: blur(4px);
+}
+
+.lane-seal {
+  position: absolute;
+  inset: 0;
+  display: grid;
+  place-items: center;
+  margin: 0;
+  z-index: 1;
+  color: var(--orange);
+  letter-spacing: 0.3em;
+  font-weight: 700;
+}
+
+.sorting-status {
+  font-size: 1.05rem;
+  min-height: 2.5rem;
+}
+
+.sorting-note {
+  font-size: 0.85rem;
+  margin-top: -0.6rem;
+}
+
 .demo-grid {
   display: grid;
   grid-template-columns: repeat(5, 1fr);
@@ -393,15 +485,25 @@ ul.plain {
 }
 
 .bar .track {
-  height: 0.6rem;
-  background: #0d1729;
+  display: block;
+  height: 0.7rem;
+  background: #0a1223;
+  border: 1px solid var(--navy-line);
   border-radius: 999px;
   overflow: hidden;
 }
 
 .bar .fill {
+  display: block;
   height: 100%;
-  background: var(--orange);
+  min-width: 2px;
+  border-radius: 999px;
+  background: linear-gradient(90deg, #ffb066, var(--orange));
+}
+
+.bar span:last-child {
+  text-align: right;
+  font-variant-numeric: tabular-nums;
 }
 
 table {

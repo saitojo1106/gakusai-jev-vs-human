@@ -1,20 +1,12 @@
-import { PASSENGERS_PER_SHIFT } from '@game/domain';
 import { useState } from 'hono/jsx';
 import { inputValue } from './dom.js';
-
-interface JevTimings {
-  readonly perPassengerMs: readonly number[];
-  readonly totalMs: number;
-  readonly failed: number;
-}
+import JevSorting, { type JevTimings } from './JevSorting.js';
 
 type Phase =
   | { kind: 'idle' }
   | { kind: 'starting' }
   | { kind: 'demo'; shiftId: string; jev: JevTimings }
   | { kind: 'error'; message: string };
-
-const seconds = (ms: number): string => (ms / 1000).toFixed(2);
 
 export default function StartShift() {
   const [airport, setAirport] = useState('');
@@ -47,32 +39,17 @@ export default function StartShift() {
   };
 
   if (phase.kind === 'demo') {
-    return (
-      <section>
-        <h1>Jev が審査中…</h1>
-        <div class="demo-grid">
-          {phase.jev.perPassengerMs.map((ms, i) => (
-            <div class="done" key={i}>
-              [{i + 1}] {seconds(ms)}s
-            </div>
-          ))}
-        </div>
-        <p>
-          Jev: {PASSENGERS_PER_SHIFT} 人を <strong>{seconds(phase.jev.totalMs)} 秒</strong>
-          で審査完了。判定は封印されました。
-          {phase.jev.failed > 0 ? ` （${phase.jev.failed} 人は回線エラー）` : ''}
-        </p>
-        <p>
-          <a href={`/play/${phase.shiftId}/0`}>
-            <button type="button">あなたの番です。配置につく →</button>
-          </a>
-        </p>
-      </section>
-    );
+    return <JevSorting shiftId={phase.shiftId} jev={phase.jev} />;
   }
 
   return (
     <form onSubmit={start}>
+      <h1>保安検査 vs Jev</h1>
+      <p class="lede">
+        乗客 10 人を審査して、AI 判定モデル Jev とスコアを競う。
+        <br />
+        脅威を通過させればハイジャック、無害な人を拘束すれば苦情。
+      </p>
       <div class="field">
         <input
           type="text"
