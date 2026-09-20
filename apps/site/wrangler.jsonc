@@ -17,6 +17,12 @@
 		}
 	],
 	"workers_dev": true,
+	"routes": [
+		{
+			"pattern": "security.saitoudayooooon-jo.com",
+			"custom_domain": true
+		}
+	],
 	"observability": {
 		"enabled": true
 	},

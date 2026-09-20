@@ -165,8 +165,9 @@ KV アダプタのテストは Miniflare 上で走る（`--project site-workers`
 
 ## デプロイ
 
-公開先は `workers.dev` の無料サブドメイン。`PUBLIC_ORIGIN` は設定しない（リクエストのホストから導出するので、
-`*.workers.dev` でも独自ドメインでもそのまま動く）。
+公開先は **https://security.saitoudayooooon-jo.com**（`workers.dev` のサブドメインも生きている）。
+`PUBLIC_ORIGIN` は設定しない。リクエストのホストから導出するので、どちらで開いてもシェア URL と OG 画像の
+URL がそのホストになる。ドメインを変えても直す場所はない。
 
 ```bash
 pnpm --filter @game/site run deploy
@@ -207,4 +208,4 @@ secret に `CLOUDFLARE_API_TOKEN` と `CLOUDFLARE_ACCOUNT_ID` を登録するこ
 | 8 | HonoX のレンダラ | hono/jsx |
 | 9 | 絵のトーン | フラットベクター・コミカル寄り |
 
-サブドメインは `workers.dev` の無料サブドメインを使うことにした。
+公開先は `security.saitoudayooooon-jo.com`。
