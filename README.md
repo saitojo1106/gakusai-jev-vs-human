@@ -1,0 +1,122 @@
+# 保安検査ゲーム（仮） — 人間 vs Jev
+
+空港の保安検査官として乗客 10 人を審査し、同じ 10 人を先に数秒で審査した AI 判定モデル **Jev** とスコアを競うブラウザゲーム。
+
+- 脅威を通過させる（見逃し）= その便でハイジャック発生、−50 点。
+- 無害な乗客を拘束する（誤検知）= 苦情、−10 点。
+- 10 人終了後に「保安検査官レベル（Lv.1〜5）」が認定され、結果ページの URL を X でシェアできる。
+- 空港名は自由入力で、そのままランキング上の名前になる。
+
+要件定義書: [保安検査ゲーム（仮）要件定義書 — 人間 vs Jev](https://claude.ai/artifact/A3bofQaek8R42Xji7A8xSz)
+
+## 設計上の柱
+
+1. **情報の対等性** — 人間が調べられる情報はすべて Jev にも渡し、その逆も成り立つ。イラストは `appearance` の描画に過ぎず、追加情報を持たない。
+2. **推理できるがランダム** — 真実は隠され、手がかりはノイズ混じり。確信度で勝負する。
+3. **Jev はそのまま使う** — Jev の精度は調整しない。生成器のノイズ量だけを人間が面白いと感じる値に固定する。
+4. **制限時間なし** — ただし所要時間は計測し、Jev の数秒と並べて見せる。
+5. **ログインなし** — 1 台の PC を交代で触る前提。結果は URL で持ち帰る。
+6. **RDB なし** — 乗客はシードから決定的に生成し、結果とランキングだけ Cloudflare KV に保存する。
+
+## 技術スタック
+
+| 領域 | 選定 |
+| --- | --- |
+| ランタイム | Cloudflare Workers（Static Assets 同梱） |
+| フレームワーク | HonoX 0.1.x（hono/jsx レンダラ）/ Hono 4.13 |
+| 永続化 | Cloudflare KV（`shift:` / `result:` / `board:top`） |
+| 判定 AI | Jev（Vercel AI Gateway `POST /v1/evaluate`、Bearer 認証） |
+| 型と検証 | TypeScript strict + Zod 4（境界のみ） |
+| テスト | Vitest 5 + `@cloudflare/vitest-pool-workers` |
+| パッケージ管理 | pnpm workspaces |
+
+Vercel はホスティングに使わない。AI Gateway の API キー発行のためだけに使う。
+
+## ディレクトリ構成
+
+```
+apps/
+  site/                  HonoX（Cloudflare Workers）: routes / islands / adapters
+packages/
+  domain/                エンティティ、生成器、採点、レベル判定。外部依存ゼロ
+  application/           ユースケースと Port（JudgePort, ShiftStore, ...）
+  contracts/             API の Zod スキーマと型（島とサーバーで共有）
+```
+
+依存の方向は `presentation → application → domain`。Jev と KV への依存は Port に閉じ込め、テストでは Fake に差し替える。`domain` は外側を一切 import しない。
+
+生成ロジックはサーバー側にしか置かない（島にバンドルすると Truth が推測できてしまうため）。
+
+## セットアップ
+
+```bash
+pnpm install
+```
+
+Jev を実際に叩くには Vercel AI Gateway の API キーが要る。ローカルでは `apps/site/.dev.vars` に置く。
+
+```
+AI_GATEWAY_API_KEY=...
+```
+
+キーなしで動かす場合は `JUDGE=fake` で `FakeJudge` に差し替える。
+
+## 開発コマンド
+
+```bash
+pnpm test           # 全パッケージのテスト
+pnpm test:watch     # ウォッチ
+pnpm typecheck      # 型チェック
+```
+
+## 進め方
+
+要件定義書 §9 のテスト駆動の順で進める。
+
+- [x] `Prng`（決定的乱数）
+- [ ] `generatePassenger`（決定的生成・整合性ルール）
+- [ ] `score` / `judgeLevel` / `summarizeShift`（採点・レベル認定）
+- [ ] `contracts`（Zod スキーマ）
+- [ ] `StartShift` / `SubmitVerdict` / `FinishShift`（Fake で）
+- [ ] `JevGatewayJudge`（fetch モック → 契約テスト）
+- [ ] `KvShiftStore` / `KvResultStore` / `KvLeaderboard`
+- [ ] HonoX の API ルート → `/r/:id` の SSR（OG タグ）→ `/ranking`
+- [ ] 島（`Checkpoint` → `JevDemo` → `ShareButtons`）
+
+## 画像アセット
+
+画像は ChatGPT / Codex 側で生成する。ファイル名は型（`ArchetypeId`、`demeanor`、`Level`）と 1 対 1 に対応させ、`apps/site/public/` に置く。命名が一覧とずれていないかは domain のテストで検証する。
+
+| 種別 | ファイル名 | 枚数 | 仕様 |
+| --- | --- | --- | --- |
+| 乗客イラスト | `passenger_{archetypeId}_{demeanor}.png` | 16 × 3（MVP は 8 × 3） | 全身・正面やや斜め・背景透過・1024×1536 |
+| レベルカード | `level_{1..5}.png` | 5 | 1200×630、右 40% を空ける（後からスコアを重ねる） |
+| 背景 | `bg_checkpoint.png` / `bg_title.png` | 2 | 1920×1080 |
+| Jev アバター | `jev_avatar_{idle,scanning,win,lose}.png` | 4 | 監視カメラ型ロボット |
+| 上司 | `supervisor_{neutral,angry}.png` | 2 | 苦情演出 |
+| スタンプ | `stamp_pass.png` / `stamp_detain.png` | 2 | 判定演出 |
+| その他 | `seal.png` / `news_flash_frame.png` / `id_card_frame.png` / `boarding_pass_frame.png` | 4 | 文字はコードで載せる |
+
+共通スタイル: flat vector illustration, thick clean outlines, limited palette (navy / sand / signal orange), no text, transparent background.
+
+特定の民族・宗教・国籍を「怪しく見える」方向に描かせない。怪しさは服装の不一致と態度だけで表現する。国籍と居住歴は架空国のみを使う。
+
+書類・X 線ビュー・HUD・スコア・QR コードはコードで描くので画像は不要。1 枚 300KB 以下、合計 20MB 以内。
+
+## 未決事項
+
+要件定義書 §12 の 9 点は、返答がない前提で推奨案を採用している。
+
+| # | 論点 | 採用 |
+| --- | --- | --- |
+| 1 | 難易度設定 | 不要（1 種類に固定） |
+| 2 | 判定の選択肢 | 2 択（通過 / 拘束） |
+| 3 | 確信度スライダー | 残す（±10 点のボーナス） |
+| 4 | Jev 判定の開示 | 1 人確定するごとに開示 |
+| 5 | 偽造パスポートの無害者 | ハイジャック意図だけで採点 |
+| 6 | Jev に渡す `state` の言語 | 英語 |
+| 7 | ランキングの重複 | 同じ空港名で何度でも載る |
+| 8 | HonoX のレンダラ | hono/jsx |
+| 9 | 絵のトーン | フラットベクター・コミカル寄り |
+
+サブドメイン（例 `security.<your-domain>`）は未決。
