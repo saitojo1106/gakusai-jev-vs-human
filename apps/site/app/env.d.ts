@@ -1,6 +1,6 @@
 declare namespace Cloudflare {
   interface Env {
-    GAME_KV: KVNamespace;
+    GAME_DB: D1Database;
     ASSETS: Fetcher;
     AI_GATEWAY_API_KEY?: string;
     JEV_MODEL?: string;

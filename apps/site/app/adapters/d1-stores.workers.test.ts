@@ -1,3 +1,4 @@
+import { LEADERBOARD_SIZE, PASSENGERS_PER_SHIFT } from '@game/domain';
 import type {
   AirportName,
   Confidence,
@@ -10,12 +11,11 @@ import type {
   ShiftRecord,
   ShiftResult,
 } from '@game/domain';
-import { LEADERBOARD_SIZE } from '@game/domain';
 import { env } from 'cloudflare:test';
 import { beforeEach, describe, expect, it } from 'vitest';
-import { KvLeaderboard } from './kv-leaderboard.js';
-import { KvResultStore } from './kv-result-store.js';
-import { KvShiftStore } from './kv-shift-store.js';
+import { D1Leaderboard } from './d1-leaderboard.js';
+import { D1ResultStore } from './d1-result-store.js';
+import { D1ShiftStore } from './d1-shift-store.js';
 
 const decided = {
   kind: 'decided',
@@ -31,9 +31,9 @@ const record = (over: Partial<ShiftRecord> = {}): ShiftRecord => ({
   seed: 'seed0001' as Seed,
   airport: 'ぼくの空港' as AirportName,
   startedAt: '2026-09-20T05:00:00.000Z',
-  jev: Array.from({ length: 10 }, () => ({ decision: decided, latencyMs: 210 })),
+  jev: Array.from({ length: PASSENGERS_PER_SHIFT }, () => ({ decision: decided, latencyMs: 210 })),
   jevWallMs: 830,
-  human: Array.from({ length: 10 }, () => null),
+  human: Array.from({ length: PASSENGERS_PER_SHIFT }, () => null),
   xrayUsedOn: null,
   resultId: null,
   ...over,
@@ -73,47 +73,44 @@ const entry = (over: Partial<LeaderboardEntry> = {}): LeaderboardEntry => ({
   ...over,
 });
 
-const clearKv = async () => {
-  const { keys } = await env.GAME_KV.list();
-  await Promise.all(keys.map((k) => env.GAME_KV.delete(k.name)));
-};
+beforeEach(async () => {
+  await env.GAME_DB.batch([
+    env.GAME_DB.prepare('DELETE FROM decisions'),
+    env.GAME_DB.prepare('DELETE FROM shifts'),
+    env.GAME_DB.prepare('DELETE FROM results'),
+    env.GAME_DB.prepare('DELETE FROM leaderboard'),
+  ]);
+});
 
-beforeEach(clearKv);
-
-describe('KvShiftStore', () => {
-  const store = () => new KvShiftStore(env.GAME_KV);
+describe('D1ShiftStore', () => {
+  const store = () => new D1ShiftStore(env.GAME_DB);
 
   it('保存して読み戻せる', async () => {
     await store().create(record());
     expect(await store().get('shift001' as ShiftId)).toEqual(record());
   });
 
-  it('shift: 接頭辞のキーに入れる', async () => {
-    await store().create(record());
-    const { keys } = await env.GAME_KV.list();
-    expect(keys.map((k) => k.name)).toEqual(['shift:shift001']);
-  });
+  it('すでに判定の入ったレコードもそのまま往復できる', async () => {
+    const human = Array.from({ length: PASSENGERS_PER_SHIFT }, () => null) as (
+      | HumanDecision
+      | null
+    )[];
+    human[2] = decision({ verdict: 'detain' });
+    await store().create(record({ human, xrayUsedOn: 5 as PassengerIndex }));
 
-  it('24 時間の TTL を付ける', async () => {
-    await store().create(record());
-    const { keys } = await env.GAME_KV.list();
-    const expiration = keys[0]?.expiration ?? 0;
-    const expected = Date.now() / 1000 + 86_400;
-    expect(Math.abs(expiration - expected)).toBeLessThan(120);
+    const loaded = await store().get('shift001' as ShiftId);
+    expect(loaded?.human[2]?.verdict).toBe('detain');
+    expect(loaded?.human[1]).toBeNull();
+    expect(loaded?.xrayUsedOn).toBe(5);
   });
 
   it('存在しないシフトは null', async () => {
     expect(await store().get('missing' as ShiftId)).toBeNull();
   });
 
-  it('壊れた JSON は null にする', async () => {
-    await env.GAME_KV.put('shift:broken', '{ not json');
-    expect(await store().get('broken' as ShiftId)).toBeNull();
-  });
-
-  it('形の違うレコードは null にする', async () => {
-    await env.GAME_KV.put('shift:odd', JSON.stringify({ shiftId: 'odd' }));
-    expect(await store().get('odd' as ShiftId)).toBeNull();
+  it('期限切れのシフトは null', async () => {
+    await new D1ShiftStore(env.GAME_DB, -10).create(record());
+    expect(await store().get('shift001' as ShiftId)).toBeNull();
   });
 
   it('人間の判定を該当の枠に書き込む', async () => {
@@ -138,10 +135,47 @@ describe('KvShiftStore', () => {
     ).rejects.toMatchObject({ code: 'already_decided' });
   });
 
+  it('同じ乗客への同時書き込みは 1 回しか通らない', async () => {
+    await store().create(record());
+    const settled = await Promise.allSettled([
+      store().recordHuman('shift001' as ShiftId, 0 as PassengerIndex, decision()),
+      store().recordHuman('shift001' as ShiftId, 0 as PassengerIndex, decision()),
+      store().recordHuman('shift001' as ShiftId, 0 as PassengerIndex, decision()),
+    ]);
+
+    expect(settled.filter((s) => s.status === 'fulfilled')).toHaveLength(1);
+  });
+
   it('存在しないシフトへの書き込みは弾く', async () => {
     await expect(
       store().recordHuman('missing' as ShiftId, 0 as PassengerIndex, decision()),
     ).rejects.toMatchObject({ code: 'shift_not_found' });
+  });
+
+  it('X 線は 1 シフトに 1 回だけ', async () => {
+    await store().create(record());
+    const updated = await store().useXray('shift001' as ShiftId, 4 as PassengerIndex);
+    expect(updated.xrayUsedOn).toBe(4);
+
+    await expect(
+      store().useXray('shift001' as ShiftId, 5 as PassengerIndex),
+    ).rejects.toMatchObject({ code: 'xray_used' });
+  });
+
+  it('X 線の同時実行も 1 回しか通らない', async () => {
+    await store().create(record());
+    const settled = await Promise.allSettled([
+      store().useXray('shift001' as ShiftId, 1 as PassengerIndex),
+      store().useXray('shift001' as ShiftId, 2 as PassengerIndex),
+    ]);
+
+    expect(settled.filter((s) => s.status === 'fulfilled')).toHaveLength(1);
+  });
+
+  it('存在しないシフトへの X 線は shift_not_found', async () => {
+    await expect(store().useXray('missing' as ShiftId, 0 as PassengerIndex)).rejects.toMatchObject({
+      code: 'shift_not_found',
+    });
   });
 
   it('結果 ID を結び付けられる', async () => {
@@ -150,32 +184,27 @@ describe('KvShiftStore', () => {
     expect((await store().get('shift001' as ShiftId))?.resultId).toBe('result01');
   });
 
-  it('判定を書き込んでも TTL を延ばし続ける', async () => {
+  it('壊れた JSON が入っていても null にする', async () => {
     await store().create(record());
-    await store().recordHuman('shift001' as ShiftId, 0 as PassengerIndex, decision());
-    const { keys } = await env.GAME_KV.list();
-    expect(keys[0]?.expiration).toBeGreaterThan(Date.now() / 1000);
+    await env.GAME_DB.prepare('UPDATE shifts SET jev = ? WHERE id = ?')
+      .bind('{ not json', 'shift001')
+      .run();
+    expect(await store().get('shift001' as ShiftId)).toBeNull();
   });
 });
 
-describe('KvResultStore', () => {
-  const store = () => new KvResultStore(env.GAME_KV);
+describe('D1ResultStore', () => {
+  const store = () => new D1ResultStore(env.GAME_DB);
 
   it('保存して読み戻せる', async () => {
     await store().save(result());
     expect(await store().get('result01' as ResultId)).toEqual(result());
   });
 
-  it('result: 接頭辞のキーに入れる', async () => {
+  it('同じ結果を 2 回保存しても壊れない', async () => {
     await store().save(result());
-    const { keys } = await env.GAME_KV.list();
-    expect(keys.map((k) => k.name)).toEqual(['result:result01']);
-  });
-
-  it('TTL を付けない', async () => {
     await store().save(result());
-    const { keys } = await env.GAME_KV.list();
-    expect(keys[0]?.expiration).toBeUndefined();
+    expect(await store().get('result01' as ResultId)).toEqual(result());
   });
 
   it('存在しない結果は null', async () => {
@@ -183,13 +212,16 @@ describe('KvResultStore', () => {
   });
 
   it('壊れた値は null にする', async () => {
-    await env.GAME_KV.put('result:broken', 'nope');
-    expect(await store().get('broken' as ResultId)).toBeNull();
+    await store().save(result());
+    await env.GAME_DB.prepare('UPDATE results SET totals = ? WHERE id = ?')
+      .bind('nope', 'result01')
+      .run();
+    expect(await store().get('result01' as ResultId)).toBeNull();
   });
 });
 
-describe('KvLeaderboard', () => {
-  const board = () => new KvLeaderboard(env.GAME_KV);
+describe('D1Leaderboard', () => {
+  const board = () => new D1Leaderboard(env.GAME_DB);
 
   it('登録してスコア順に返す', async () => {
     await board().add(entry({ resultId: 'low' as ResultId, points: 80 }));
@@ -199,30 +231,31 @@ describe('KvLeaderboard', () => {
     expect((await board().top(10)).map((e) => e.resultId)).toEqual(['high', 'mid', 'low']);
   });
 
-  it('board:top の 1 キーにまとめる', async () => {
+  it('同点なら新しい方を上に出す', async () => {
+    await board().add(
+      entry({ resultId: 'old' as ResultId, finishedAt: '2026-09-20T01:00:00.000Z' }),
+    );
+    await board().add(
+      entry({ resultId: 'new' as ResultId, finishedAt: '2026-09-20T09:00:00.000Z' }),
+    );
+
+    expect((await board().top(10)).map((e) => e.resultId)).toEqual(['new', 'old']);
+  });
+
+  it('同時に登録しても取りこぼさない', async () => {
+    await Promise.all(
+      Array.from({ length: 10 }, (_, i) =>
+        board().add(entry({ resultId: `r${i}` as ResultId, points: i })),
+      ),
+    );
+
+    expect(await board().top(LEADERBOARD_SIZE)).toHaveLength(10);
+  });
+
+  it('同じ結果を 2 回登録しても 1 件にする', async () => {
     await board().add(entry());
-    const { keys } = await env.GAME_KV.list();
-    expect(keys.map((k) => k.name)).toEqual(['board:top']);
-  });
-
-  it('20 件を超えたら下位から捨てる', async () => {
-    for (let i = 0; i < 40; i += 1) {
-      await board().add(entry({ resultId: `r${i}` as ResultId, points: i }));
-    }
-    const stored = JSON.parse((await env.GAME_KV.get('board:top')) ?? '[]');
-    expect(stored).toHaveLength(LEADERBOARD_SIZE);
-    expect(stored[0].points).toBe(39);
-    expect(stored.at(-1).points).toBe(20);
-  });
-
-  it('21 位以下は KV から消えていて、あとから取り出せない', async () => {
-    for (let i = 0; i < 30; i += 1) {
-      await board().add(entry({ resultId: `r${i}` as ResultId, points: i }));
-    }
-    const kept = (await board().top(LEADERBOARD_SIZE)).map((e) => e.resultId);
-    expect(kept).toHaveLength(LEADERBOARD_SIZE);
-    expect(kept).not.toContain('r9');
-    expect(await board().top(100)).toHaveLength(LEADERBOARD_SIZE);
+    await board().add(entry());
+    expect(await board().top(10)).toHaveLength(1);
   });
 
   it('件数を絞って返す', async () => {
@@ -230,6 +263,15 @@ describe('KvLeaderboard', () => {
       await board().add(entry({ resultId: `r${i}` as ResultId, points: i }));
     }
     expect(await board().top(3)).toHaveLength(3);
+  });
+
+  it('20 件より多く入っていても、求められた件数までしか返さない', async () => {
+    for (let i = 0; i < 30; i += 1) {
+      await board().add(entry({ resultId: `r${i}` as ResultId, points: i }));
+    }
+    const top = await board().top(LEADERBOARD_SIZE);
+    expect(top).toHaveLength(LEADERBOARD_SIZE);
+    expect(top[0]?.points).toBe(29);
   });
 
   it('空港名で絞り込める', async () => {
@@ -242,16 +284,5 @@ describe('KvLeaderboard', () => {
 
   it('まだ誰も登録していなければ空を返す', async () => {
     expect(await board().top(10)).toEqual([]);
-  });
-
-  it('壊れた値が入っていても空として扱う', async () => {
-    await env.GAME_KV.put('board:top', '{ broken');
-    expect(await board().top(10)).toEqual([]);
-  });
-
-  it('壊れた値の上に登録できる', async () => {
-    await env.GAME_KV.put('board:top', '{ broken');
-    await board().add(entry());
-    expect(await board().top(10)).toHaveLength(1);
   });
 });

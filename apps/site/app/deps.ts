@@ -2,9 +2,9 @@ import { FakeJudge } from '@game/application/fakes';
 import type { JudgePort, UsecaseDeps } from '@game/application';
 import { JevGatewayJudge } from './adapters/jev-gateway-judge.js';
 import { CryptoIdGenerator, SystemClock } from './adapters/crypto-ids.js';
-import { KvLeaderboard } from './adapters/kv-leaderboard.js';
-import { KvResultStore } from './adapters/kv-result-store.js';
-import { KvShiftStore } from './adapters/kv-shift-store.js';
+import { D1Leaderboard } from './adapters/d1-leaderboard.js';
+import { D1ResultStore } from './adapters/d1-result-store.js';
+import { D1ShiftStore } from './adapters/d1-shift-store.js';
 
 export const createJudge = (env: AppBindings): JudgePort => {
   if (env.JUDGE === 'fake' || env.AI_GATEWAY_API_KEY === undefined) return new FakeJudge();
@@ -18,9 +18,9 @@ export const createJudge = (env: AppBindings): JudgePort => {
 
 export const createDeps = (env: AppBindings, requestUrl: string): UsecaseDeps => ({
   judge: createJudge(env),
-  shifts: new KvShiftStore(env.GAME_KV),
-  results: new KvResultStore(env.GAME_KV),
-  leaderboard: new KvLeaderboard(env.GAME_KV),
+  shifts: new D1ShiftStore(env.GAME_DB),
+  results: new D1ResultStore(env.GAME_DB),
+  leaderboard: new D1Leaderboard(env.GAME_DB),
   ids: new CryptoIdGenerator(),
   clock: new SystemClock(),
   publicOrigin: env.PUBLIC_ORIGIN ?? new URL(requestUrl).origin,

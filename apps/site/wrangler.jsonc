@@ -10,10 +10,12 @@
 		"directory": "./dist",
 		"binding": "ASSETS"
 	},
-	"kv_namespaces": [
+	"d1_databases": [
 		{
-			"binding": "GAME_KV",
-			"id": "8b744d4636c8407d97fdd3650260aa0d"
+			"binding": "GAME_DB",
+			"database_name": "gakusai-jev",
+			"database_id": "e583782d-bceb-433f-a034-c245026c58c7",
+			"migrations_dir": "./migrations"
 		}
 	],
 	"workers_dev": true,
