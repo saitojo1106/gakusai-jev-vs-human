@@ -128,7 +128,7 @@ export class JevGatewayJudge implements JudgePort {
     this.retryBaseMs = options.retryBaseMs ?? 400;
     this.retryBudgetMs = options.retryBudgetMs ?? 6000;
     this.maxConcurrency = options.maxConcurrency ?? 6;
-    this.fetchImpl = options.fetchImpl ?? fetch;
+    this.fetchImpl = options.fetchImpl ?? globalThis.fetch.bind(globalThis);
   }
 
   async evaluateMany(dossiers: readonly Dossier[]): Promise<JudgeBatch> {

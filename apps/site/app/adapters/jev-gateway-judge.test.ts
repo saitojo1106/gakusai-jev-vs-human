@@ -381,6 +381,26 @@ describe('JevGatewayJudge', () => {
     expect(Date.now() - startedAt).toBeLessThan(2500);
   });
 
+  it('既定の fetch は globalThis に束縛して呼ぶ', async () => {
+    const original = globalThis.fetch;
+    let calledThis: unknown = 'not called';
+    globalThis.fetch = function (this: unknown) {
+      calledThis = this;
+      return Promise.resolve(ok());
+    } as unknown as typeof fetch;
+
+    try {
+      const { decisions } = await new JevGatewayJudge({ apiKey: 'test-key' }).evaluateMany(
+        dossiers(1),
+      );
+      expect(decisions[0]?.decision.kind).toBe('decided');
+    } finally {
+      globalThis.fetch = original;
+    }
+
+    expect(calledThis).toBe(globalThis);
+  });
+
   it('判定不能でもレイテンシは記録する', async () => {
     fetchImpl.mockResolvedValue(new Response('', { status: 500 }));
     const { decisions } = await judge().evaluateMany(dossiers(1));
