@@ -44,26 +44,44 @@ export default function StartShift() {
 
   return (
     <form onSubmit={start}>
-      <h1>保安検査 vs Jev</h1>
-      <p class="lede">
+      <h1 class="text-4xl font-bold tracking-wide sm:text-5xl">保安検査 vs Jev</h1>
+      <p class="mt-4 mb-8 opacity-70">
         乗客 10 人を審査して、AI 判定モデル Jev とスコアを競う。
         <br />
         脅威を通過させればハイジャック、無害な人を拘束すれば苦情。
       </p>
-      <div class="field">
+
+      <div class="join w-full">
         <input
           type="text"
           value={airport}
           maxLength={20}
           placeholder="あなたの空港名"
           autoComplete="off"
+          class="input input-bordered input-lg join-item grow"
           onInput={(e) => setAirport(inputValue(e))}
         />
-        <button type="submit" disabled={phase.kind === 'starting'}>
-          {phase.kind === 'starting' ? 'Jev が審査中…' : 'シフト開始'}
+        <button
+          type="submit"
+          class="btn btn-primary btn-lg join-item"
+          disabled={phase.kind === 'starting'}
+        >
+          {phase.kind === 'starting' ? (
+            <>
+              <span class="loading loading-spinner loading-sm" />
+              Jev が審査中…
+            </>
+          ) : (
+            'シフト開始'
+          )}
         </button>
       </div>
-      {phase.kind === 'error' ? <p class="error">{phase.message}</p> : null}
+
+      {phase.kind === 'error' ? (
+        <div role="alert" class="alert alert-error mt-4">
+          <span>{phase.message}</span>
+        </div>
+      ) : null}
     </form>
   );
 }

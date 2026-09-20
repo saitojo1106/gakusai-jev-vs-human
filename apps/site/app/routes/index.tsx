@@ -3,15 +3,23 @@ import StartShift from '../islands/StartShift.js';
 
 export default createRoute((c) =>
   c.render(
-    <main class="shell title-screen">
-      <div>
-        <StartShift />
-        <p style="margin-top:2rem">
-          <span class="badge">対戦相手: Jev（TypeSafe AI）</span>
-        </p>
-        <p>
-          <a href="/ranking">ランキングを見る</a> ・ <a href="/demo">Jev だけで 100 人</a>
-        </p>
+    <main class="hero min-h-screen bg-[url('/img/bg/bg_title.png')] bg-cover bg-center">
+      <div class="hero-overlay bg-base-100/85" />
+      <div class="hero-content text-center">
+        <div class="max-w-xl">
+          <StartShift />
+          <div class="mt-8 flex flex-wrap items-center justify-center gap-3">
+            <span class="badge badge-outline badge-lg">対戦相手: Jev（TypeSafe AI）</span>
+          </div>
+          <div class="mt-4 flex flex-wrap items-center justify-center gap-4">
+            <a class="link link-primary" href="/ranking">
+              ランキングを見る
+            </a>
+            <a class="link link-primary" href="/demo">
+              Jev だけで 100 人
+            </a>
+          </div>
+        </div>
       </div>
     </main>,
   ),

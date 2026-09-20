@@ -11,7 +11,7 @@ export default createRoute((c) => {
   }
 
   return c.render(
-    <main class="shell">
+    <main class="mx-auto max-w-[1280px] px-4 py-6">
       <Checkpoint shiftId={shiftId} index={index} />
     </main>,
     { title: `検査場 ${index + 1} 人目` },

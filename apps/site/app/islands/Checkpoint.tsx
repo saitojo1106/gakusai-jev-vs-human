@@ -1,8 +1,8 @@
 import {
   ANOMALY_LABELS,
   ASPECT_LABELS,
-  CRIMINAL_LABELS,
   COUNTRY_LABELS,
+  CRIMINAL_LABELS,
   DEMEANOR_LABELS,
   FLAG_LABELS,
   FORGERY_LABELS,
@@ -36,6 +36,13 @@ interface Totals {
 }
 
 const totalsKey = (shiftId: string) => `totals:${shiftId}`;
+
+const Row = ({ label, children }: { label: string; children: unknown }) => (
+  <div class="flex justify-between gap-3 border-b border-base-300 py-1.5 last:border-0">
+    <span class="shrink-0 text-sm opacity-60">{label}</span>
+    <span class="text-right tabular-nums">{children}</span>
+  </div>
+);
 
 export default function Checkpoint({ shiftId, index }: { shiftId: string; index: number }) {
   const [dossier, setDossier] = useState<Dossier | null>(null);
@@ -92,16 +99,6 @@ export default function Checkpoint({ shiftId, index }: { shiftId: string; index:
     mark(`question:${id}`);
   };
 
-  const inspectPassport = () => {
-    setPassportInspected(true);
-    mark('passport_inspection');
-  };
-
-  const checkMouth = () => {
-    setMouthChecked(true);
-    mark('mouth');
-  };
-
   const submit = async (verdict: Verdict) => {
     if (dossier === null || submitting || reveal !== null) return;
     setSubmitting(true);
@@ -109,12 +106,7 @@ export default function Checkpoint({ shiftId, index }: { shiftId: string; index:
     const response = await fetch(`/api/shift/${shiftId}/passenger/${index}/verdict`, {
       method: 'POST',
       headers: { 'content-type': 'application/json' },
-      body: JSON.stringify({
-        verdict,
-        confidence,
-        elapsedMs: Date.now() - startedAt,
-        inspected,
-      }),
+      body: JSON.stringify({ verdict, confidence, elapsedMs: Date.now() - startedAt, inspected }),
     });
 
     if (!response.ok && response.status !== 409) {
@@ -165,7 +157,8 @@ export default function Checkpoint({ shiftId, index }: { shiftId: string; index:
       if (event.key === 'a' || event.key === 'A' || event.key === 'ArrowLeft') void submit('detain');
       if (event.key === 'd' || event.key === 'D' || event.key === 'ArrowRight') void submit('pass');
       if (event.key === 'ArrowUp') setConfidence((c) => Math.min(1, Math.round((c + 0.1) * 10) / 10));
-      if (event.key === 'ArrowDown') setConfidence((c) => Math.max(0.5, Math.round((c - 0.1) * 10) / 10));
+      if (event.key === 'ArrowDown')
+        setConfidence((c) => Math.max(0.5, Math.round((c - 0.1) * 10) / 10));
       if (event.key === '1') openCenter('identity');
       if (event.key === '2') openCenter('boarding_pass');
       if (event.key === '3') openCenter('belongings');
@@ -180,274 +173,396 @@ export default function Checkpoint({ shiftId, index }: { shiftId: string; index:
 
   if (failed) {
     return (
-      <p class="error">
-        このシフトは見つかりませんでした。<a href="/">タイトルに戻る</a>
-      </p>
+      <div role="alert" class="alert alert-error">
+        <span>
+          このシフトは見つかりませんでした。
+          <a class="link" href="/">
+            タイトルに戻る
+          </a>
+        </span>
+      </div>
     );
   }
 
-  if (dossier === null) return <p class="muted">乗客を呼び出しています…</p>;
+  if (dossier === null) {
+    return (
+      <div class="flex items-center gap-3 opacity-70">
+        <span class="loading loading-spinner" />
+        乗客を呼び出しています…
+      </div>
+    );
+  }
 
   const followUpUnlocked = asked.length >= FOLLOW_UP_UNLOCKED_AFTER;
 
   return (
     <>
       {newsflash ? (
-        <div class="newsflash">
-          <div>
-            <strong>ニュース速報</strong>
-            <p>{dossier.boardingPass.flightNo} 便がハイジャック</p>
+        <div class="fixed inset-0 z-50 grid place-items-center bg-error/15 backdrop-blur-sm">
+          <div class="card border border-error bg-neutral shadow-xl">
+            <div class="card-body items-center text-center">
+              <span class="badge badge-error badge-lg tracking-[0.2em]">ニュース速報</span>
+              <p class="mt-2 text-2xl font-bold text-error sm:text-4xl">
+                {dossier.boardingPass.flightNo} 便がハイジャック
+              </p>
+            </div>
           </div>
         </div>
       ) : null}
 
-      <div class="hud">
-        <span>
-          {index + 1} / {PASSENGERS_PER_SHIFT} 人目
-        </span>
-        <span>経過 {formatDuration(reveal?.human.elapsedMs ?? elapsed)}</span>
-        <span>
-          人間 <strong>{totals.human}</strong>
-        </span>
-        <span class="spacer badge">Jev 封印済</span>
+      <div class="navbar mb-4 min-h-0 rounded-box border border-base-300 bg-base-200 px-4 py-2">
+        <div class="flex flex-1 flex-wrap items-center gap-4 text-sm">
+          <span class="tabular-nums">
+            {index + 1} / {PASSENGERS_PER_SHIFT} 人目
+          </span>
+          <span class="tabular-nums opacity-70">
+            経過 {formatDuration(reveal?.human.elapsedMs ?? elapsed)}
+          </span>
+          <span class="tabular-nums">
+            人間 <span class="font-bold">{totals.human}</span>
+          </span>
+        </div>
+        <span class="badge badge-outline">Jev 封印済</span>
       </div>
 
       {reveal === null ? (
         <>
-          <div class="columns">
-            <section class="panel">
-              <div class="queue">
-                {Array.from({ length: PASSENGERS_PER_SHIFT }, (_, i) => (
-                  <span key={i} class={i < index ? 'done' : i === index ? 'current' : ''} />
-                ))}
+          <div class="grid gap-4 lg:grid-cols-[260px_1fr_1fr]">
+            <div class="card border border-base-300 bg-base-200">
+              <div class="card-body gap-3 p-4">
+                <div class="flex gap-1.5">
+                  {Array.from({ length: PASSENGERS_PER_SHIFT }, (_, i) => (
+                    <span
+                      key={i}
+                      class={`h-2.5 w-2.5 rounded-full border border-base-300 ${
+                        i < index ? 'bg-accent' : i === index ? 'bg-primary' : ''
+                      }`}
+                    />
+                  ))}
+                </div>
+                <img
+                  class="portrait mx-auto w-full max-w-56 rounded-box border border-base-300 bg-neutral"
+                  src={passengerImage(dossier.appearance.archetype, dossier.appearance.demeanor)}
+                  alt=""
+                />
+                <div>
+                  態度:{' '}
+                  <span class="badge badge-warning badge-sm">
+                    {DEMEANOR_LABELS[dossier.appearance.demeanor]}
+                  </span>
+                  <div class="text-sm opacity-60">{dossier.appearance.ageBand}</div>
+                </div>
+                {dossier.appearance.notableItems.length > 0 ? (
+                  <p class="text-sm opacity-60">
+                    目立つ持ち物: {dossier.appearance.notableItems.join('、')}
+                  </p>
+                ) : null}
               </div>
-              <img
-                class="portrait"
-                src={passengerImage(dossier.appearance.archetype, dossier.appearance.demeanor)}
-                alt=""
-              />
-              <p>
-                態度: <strong>{DEMEANOR_LABELS[dossier.appearance.demeanor]}</strong>
-                <br />
-                <span class="muted">{dossier.appearance.ageBand}</span>
-              </p>
-              {dossier.appearance.notableItems.length > 0 ? (
-                <p class="muted">目立つ持ち物: {dossier.appearance.notableItems.join('、')}</p>
-              ) : null}
-            </section>
+            </div>
 
-            <section class="panel">
-              <div class="tabs" role="tablist">
-                <button type="button" aria-selected={centerTab === 'identity'} onClick={() => openCenter('identity')}>
-                  身分証 (1)
-                </button>
-                <button
-                  type="button"
-                  aria-selected={centerTab === 'boarding_pass'}
-                  onClick={() => openCenter('boarding_pass')}
-                >
-                  搭乗券 (2)
-                </button>
-                <button type="button" aria-selected={centerTab === 'belongings'} onClick={() => openCenter('belongings')}>
-                  手荷物 (3)
-                </button>
-              </div>
+            <div class="card border border-base-300 bg-base-200">
+              <div class="card-body gap-3 p-4">
+                <div role="tablist" class="tabs tabs-box">
+                  <button
+                    type="button"
+                    role="tab"
+                    class={`tab ${centerTab === 'identity' ? 'tab-active' : ''}`}
+                    onClick={() => openCenter('identity')}
+                  >
+                    身分証 (1)
+                  </button>
+                  <button
+                    type="button"
+                    role="tab"
+                    class={`tab ${centerTab === 'boarding_pass' ? 'tab-active' : ''}`}
+                    onClick={() => openCenter('boarding_pass')}
+                  >
+                    搭乗券 (2)
+                  </button>
+                  <button
+                    type="button"
+                    role="tab"
+                    class={`tab ${centerTab === 'belongings' ? 'tab-active' : ''}`}
+                    onClick={() => openCenter('belongings')}
+                  >
+                    手荷物 (3)
+                  </button>
+                </div>
 
-              {centerTab === 'identity' ? (
-                <>
-                  <dl class="rows">
-                    <dt>種別</dt>
-                    <dd>{ID_KIND_LABELS[dossier.identity.kind]}</dd>
-                    <dt>氏名</dt>
-                    <dd>{dossier.identity.fullName}</dd>
-                    <dt>国籍</dt>
-                    <dd>{COUNTRY_LABELS[dossier.identity.nationality] ?? dossier.identity.nationality}</dd>
-                    <dt>生年月日</dt>
-                    <dd>{dossier.identity.birthDate}</dd>
-                    <dt>有効期限</dt>
-                    <dd>
-                      {dossier.identity.expiresOn}
-                      {dossier.identity.anomalies.length > 0 ? <span class="flag"> ⚠</span> : null}
-                    </dd>
-                    <dt>写真一致度</dt>
-                    <dd>{PHOTO_MATCH_LABELS[dossier.identity.photoMatch]}</dd>
-                  </dl>
-                  {dossier.identity.anomalies.length > 0 ? (
-                    <p class="flag">
-                      ⚠ {dossier.identity.anomalies.map((a) => ANOMALY_LABELS[a]).join('、')}
-                    </p>
-                  ) : null}
-                  <p>
-                    <button type="button" onClick={inspectPassport} disabled={passportInspected}>
+                {centerTab === 'identity' ? (
+                  <>
+                    <div>
+                      <Row label="種別">{ID_KIND_LABELS[dossier.identity.kind]}</Row>
+                      <Row label="氏名">{dossier.identity.fullName}</Row>
+                      <Row label="国籍">
+                        {COUNTRY_LABELS[dossier.identity.nationality] ??
+                          dossier.identity.nationality}
+                      </Row>
+                      <Row label="生年月日">{dossier.identity.birthDate}</Row>
+                      <Row label="有効期限">
+                        {dossier.identity.expiresOn}
+                        {dossier.identity.anomalies.length > 0 ? (
+                          <span class="ml-1 text-warning">⚠</span>
+                        ) : null}
+                      </Row>
+                      <Row label="写真一致度">{PHOTO_MATCH_LABELS[dossier.identity.photoMatch]}</Row>
+                    </div>
+
+                    {dossier.identity.anomalies.length > 0 ? (
+                      <div role="alert" class="alert alert-warning alert-soft py-2">
+                        <span>
+                          {dossier.identity.anomalies.map((a) => ANOMALY_LABELS[a]).join('、')}
+                        </span>
+                      </div>
+                    ) : null}
+
+                    <button
+                      type="button"
+                      class="btn btn-outline btn-sm"
+                      onClick={() => {
+                        setPassportInspected(true);
+                        mark('passport_inspection');
+                      }}
+                      disabled={passportInspected}
+                    >
                       パスポートを精査
                     </button>
-                  </p>
-                  {passportInspected ? (
-                    dossier.identity.inspection.length === 0 ? (
-                      <p class="muted">所見: 異常なし</p>
-                    ) : (
-                      <ul class="plain">
-                        {dossier.identity.inspection.map((o) => (
-                          <li class="flag" key={o}>
-                            所見: {FORGERY_LABELS[o]}
-                          </li>
+
+                    {passportInspected ? (
+                      dossier.identity.inspection.length === 0 ? (
+                        <p class="text-sm opacity-60">所見: 異常なし</p>
+                      ) : (
+                        <ul class="list">
+                          {dossier.identity.inspection.map((o) => (
+                            <li class="list-row px-0 py-1 text-warning" key={o}>
+                              所見: {FORGERY_LABELS[o]}
+                            </li>
+                          ))}
+                        </ul>
+                      )
+                    ) : null}
+                  </>
+                ) : null}
+
+                {centerTab === 'boarding_pass' ? (
+                  <div>
+                    <Row label="便名">{dossier.boardingPass.flightNo}</Row>
+                    <Row label="行き先">{dossier.boardingPass.destination}</Row>
+                    <Row label="座席">{dossier.boardingPass.seat}</Row>
+                    <Row label="種別">{TRIP_TYPE_LABELS[dossier.boardingPass.tripType]}</Row>
+                    <Row label="購入方法">{PAYMENT_LABELS[dossier.boardingPass.payment]}</Row>
+                    <Row label="購入時期">
+                      出発の {dossier.boardingPass.purchasedDaysBefore} 日前
+                    </Row>
+                    <Row label="預け荷物">{dossier.boardingPass.checkedBags} 個</Row>
+                  </div>
+                ) : null}
+
+                {centerTab === 'belongings' ? (
+                  <ul class="flex flex-col gap-2">
+                    {dossier.belongings.map((item) => (
+                      <li class="flex flex-wrap items-center gap-2" key={item.kind}>
+                        <span>
+                          {ITEM_LABELS[item.kind] ?? item.kind} × {item.quantity}
+                        </span>
+                        {item.flags.map((flag) => (
+                          <span
+                            key={flag}
+                            class={`badge badge-sm ${
+                              flag === 'suspicious' || flag === 'tool'
+                                ? 'badge-warning'
+                                : 'badge-ghost'
+                            }`}
+                          >
+                            {FLAG_LABELS[flag]}
+                          </span>
                         ))}
-                      </ul>
-                    )
-                  ) : null}
-                </>
-              ) : null}
-
-              {centerTab === 'boarding_pass' ? (
-                <dl class="rows">
-                  <dt>便名</dt>
-                  <dd>{dossier.boardingPass.flightNo}</dd>
-                  <dt>行き先</dt>
-                  <dd>{dossier.boardingPass.destination}</dd>
-                  <dt>座席</dt>
-                  <dd>{dossier.boardingPass.seat}</dd>
-                  <dt>種別</dt>
-                  <dd>{TRIP_TYPE_LABELS[dossier.boardingPass.tripType]}</dd>
-                  <dt>購入方法</dt>
-                  <dd>{PAYMENT_LABELS[dossier.boardingPass.payment]}</dd>
-                  <dt>購入時期</dt>
-                  <dd>出発の {dossier.boardingPass.purchasedDaysBefore} 日前</dd>
-                  <dt>預け荷物</dt>
-                  <dd>{dossier.boardingPass.checkedBags} 個</dd>
-                </dl>
-              ) : null}
-
-              {centerTab === 'belongings' ? (
-                <ul class="plain">
-                  {dossier.belongings.map((item) => (
-                    <li key={item.kind}>
-                      {ITEM_LABELS[item.kind] ?? item.kind} × {item.quantity}{' '}
-                      {item.flags.map((flag) => (
-                        <span class={`chip ${flag}`} key={flag}>
-                          {FLAG_LABELS[flag]}
-                        </span>
-                      ))}
-                    </li>
-                  ))}
-                </ul>
-              ) : null}
-            </section>
-
-            <section class="panel">
-              <div class="tabs" role="tablist">
-                <button type="button" aria-selected={rightTab === 'interview'} onClick={() => openRight('interview')}>
-                  質問 (Q)
-                </button>
-                <button type="button" aria-selected={rightTab === 'mouth'} onClick={() => openRight('mouth')}>
-                  口内検査 (M)
-                </button>
-                <button type="button" aria-selected={rightTab === 'record'} onClick={() => openRight('record')}>
-                  照会 (R)
-                </button>
-              </div>
-
-              {rightTab === 'interview' ? (
-                <>
-                  {dossier.interview
-                    .filter((exchange) => asked.includes(exchange.id))
-                    .map((exchange) => (
-                      <div class="qa" key={exchange.id}>
-                        <p class="q">Q {exchange.question}</p>
-                        <p>A {exchange.answer}</p>
-                        <p class="tone">{TONE_LABELS[exchange.tone]}</p>
-                      </div>
-                    ))}
-                  <h2>まだ聞いていない質問</h2>
-                  <ul class="plain">
-                    {dossier.interview
-                      .filter((exchange) => !asked.includes(exchange.id))
-                      .map((exchange) => {
-                        const locked = exchange.id === 'follow_up' && !followUpUnlocked;
-                        return (
-                          <li key={exchange.id}>
-                            <button type="button" disabled={locked} onClick={() => ask(exchange.id)}>
-                              {exchange.id === 'follow_up' ? '追い質問 ⚡' : exchange.question}
-                            </button>
-                            {locked ? (
-                              <span class="muted"> （3 問聞くと解放）</span>
-                            ) : null}
-                          </li>
-                        );
-                      })}
-                  </ul>
-                </>
-              ) : null}
-
-              {rightTab === 'mouth' ? (
-                <>
-                  <button type="button" onClick={checkMouth} disabled={mouthChecked}>
-                    口を開けてもらう
-                  </button>
-                  {mouthChecked ? (
-                    <p class={dossier.mouth.finding === 'clear' ? 'muted' : 'flag'}>
-                      所見: {MOUTH_LABELS[dossier.mouth.finding]}
-                    </p>
-                  ) : null}
-                </>
-              ) : null}
-
-              {rightTab === 'record' ? (
-                <>
-                  <dl class="rows">
-                    <dt>前歴</dt>
-                    <dd>{CRIMINAL_LABELS[dossier.record.criminalHistory]}</dd>
-                    <dt>監視リスト</dt>
-                    <dd class={dossier.record.watchlistHit ? 'flag' : ''}>
-                      {dossier.record.watchlistHit ? '該当' : '該当なし'}
-                    </dd>
-                    <dt>渡航回数</dt>
-                    <dd>過去 1 年で {dossier.record.tripsLastYear} 回</dd>
-                    <dt>渡航目的</dt>
-                    <dd>
-                      {PURPOSE_LABELS[dossier.purpose.stated]}・{dossier.purpose.stayDays} 日・同行{' '}
-                      {dossier.purpose.companions} 名
-                    </dd>
-                  </dl>
-                  <h2>居住歴</h2>
-                  <ul class="plain">
-                    {dossier.residenceHistory.map((entry) => (
-                      <li key={entry.country}>
-                        {COUNTRY_LABELS[entry.country] ?? entry.country}・{entry.years} 年
-                        <span class={`chip ${entry.stability === 'conflict' ? 'suspicious' : ''}`}>
-                          {STABILITY_LABELS[entry.stability]}
-                        </span>
                       </li>
                     ))}
                   </ul>
-                  <p>
-                    <button type="button" onClick={() => mark('residence')}>
+                ) : null}
+              </div>
+            </div>
+
+            <div class="card border border-base-300 bg-base-200">
+              <div class="card-body gap-3 p-4">
+                <div role="tablist" class="tabs tabs-box">
+                  <button
+                    type="button"
+                    role="tab"
+                    class={`tab ${rightTab === 'interview' ? 'tab-active' : ''}`}
+                    onClick={() => openRight('interview')}
+                  >
+                    質問 (Q)
+                  </button>
+                  <button
+                    type="button"
+                    role="tab"
+                    class={`tab ${rightTab === 'mouth' ? 'tab-active' : ''}`}
+                    onClick={() => openRight('mouth')}
+                  >
+                    口内検査 (M)
+                  </button>
+                  <button
+                    type="button"
+                    role="tab"
+                    class={`tab ${rightTab === 'record' ? 'tab-active' : ''}`}
+                    onClick={() => openRight('record')}
+                  >
+                    照会 (R)
+                  </button>
+                </div>
+
+                {rightTab === 'interview' ? (
+                  <>
+                    {dossier.interview
+                      .filter((exchange) => asked.includes(exchange.id))
+                      .map((exchange) => (
+                        <div class="border-l-2 border-base-300 pl-3" key={exchange.id}>
+                          <p class="text-sm opacity-60">Q {exchange.question}</p>
+                          <p>A {exchange.answer}</p>
+                          <span
+                            class={`badge badge-xs ${
+                              exchange.tone === 'steady' ? 'badge-ghost' : 'badge-warning'
+                            }`}
+                          >
+                            {TONE_LABELS[exchange.tone]}
+                          </span>
+                        </div>
+                      ))}
+
+                    <h3 class="text-xs tracking-widest opacity-60">まだ聞いていない質問</h3>
+                    <div class="flex flex-col gap-2">
+                      {dossier.interview
+                        .filter((exchange) => !asked.includes(exchange.id))
+                        .map((exchange) => {
+                          const locked = exchange.id === 'follow_up' && !followUpUnlocked;
+                          return (
+                            <button
+                              type="button"
+                              key={exchange.id}
+                              class={`btn btn-sm justify-start ${
+                                exchange.id === 'follow_up' ? 'btn-outline btn-warning' : 'btn-ghost'
+                              }`}
+                              disabled={locked}
+                              onClick={() => ask(exchange.id)}
+                            >
+                              {exchange.id === 'follow_up'
+                                ? locked
+                                  ? '追い質問 ⚡（3 問聞くと解放）'
+                                  : '追い質問 ⚡'
+                                : exchange.question}
+                            </button>
+                          );
+                        })}
+                    </div>
+                  </>
+                ) : null}
+
+                {rightTab === 'mouth' ? (
+                  <>
+                    <button
+                      type="button"
+                      class="btn btn-outline btn-sm"
+                      onClick={() => {
+                        setMouthChecked(true);
+                        mark('mouth');
+                      }}
+                      disabled={mouthChecked}
+                    >
+                      口を開けてもらう
+                    </button>
+                    {mouthChecked ? (
+                      <p
+                        class={
+                          dossier.mouth.finding === 'clear' ? 'opacity-60' : 'font-bold text-warning'
+                        }
+                      >
+                        所見: {MOUTH_LABELS[dossier.mouth.finding]}
+                      </p>
+                    ) : null}
+                  </>
+                ) : null}
+
+                {rightTab === 'record' ? (
+                  <>
+                    <div>
+                      <Row label="前歴">{CRIMINAL_LABELS[dossier.record.criminalHistory]}</Row>
+                      <Row label="監視リスト">
+                        <span class={dossier.record.watchlistHit ? 'font-bold text-error' : ''}>
+                          {dossier.record.watchlistHit ? '該当' : '該当なし'}
+                        </span>
+                      </Row>
+                      <Row label="渡航回数">過去 1 年で {dossier.record.tripsLastYear} 回</Row>
+                      <Row label="渡航目的">
+                        {PURPOSE_LABELS[dossier.purpose.stated]}・{dossier.purpose.stayDays} 日・同行{' '}
+                        {dossier.purpose.companions} 名
+                      </Row>
+                    </div>
+
+                    <h3 class="text-xs tracking-widest opacity-60">居住歴</h3>
+                    <ul class="flex flex-col gap-1.5">
+                      {dossier.residenceHistory.map((entry) => (
+                        <li class="flex items-center gap-2" key={entry.country}>
+                          <span>
+                            {COUNTRY_LABELS[entry.country] ?? entry.country}・{entry.years} 年
+                          </span>
+                          <span
+                            class={`badge badge-sm ${
+                              entry.stability === 'conflict' ? 'badge-error' : 'badge-ghost'
+                            }`}
+                          >
+                            {STABILITY_LABELS[entry.stability]}
+                          </span>
+                        </li>
+                      ))}
+                    </ul>
+                    <button
+                      type="button"
+                      class="btn btn-ghost btn-sm"
+                      onClick={() => mark('residence')}
+                    >
                       居住歴を確認した
                     </button>
-                  </p>
-                </>
-              ) : null}
-            </section>
+                  </>
+                ) : null}
+              </div>
+            </div>
           </div>
 
-          <div class="actions">
-            <label>
-              確信度 <strong>{Math.round(confidence * 100)}%</strong>
-              <br />
+          <div class="mt-4 flex flex-wrap items-end gap-4 rounded-box border border-base-300 bg-base-200 p-4">
+            <label class="grow">
+              <span class="text-sm opacity-70">
+                確信度 <span class="font-bold tabular-nums">{Math.round(confidence * 100)}%</span>
+              </span>
               <input
                 type="range"
                 min="50"
                 max="100"
                 step="5"
                 value={String(Math.round(confidence * 100))}
+                class="range range-primary"
                 onInput={(e) => setConfidence(numberValue(e) / 100)}
               />
             </label>
-            <button type="button" class="detain grow" disabled={submitting} onClick={() => submit('detain')}>
-              ← 拘束 (A)
-            </button>
-            <button type="button" class="pass" disabled={submitting} onClick={() => submit('pass')}>
-              通過 (D) →
-            </button>
+            <div class="flex gap-3">
+              <button
+                type="button"
+                class="btn btn-error btn-lg"
+                disabled={submitting}
+                onClick={() => submit('detain')}
+              >
+                ← 拘束 (A)
+              </button>
+              <button
+                type="button"
+                class="btn btn-success btn-lg"
+                disabled={submitting}
+                onClick={() => submit('pass')}
+              >
+                通過 (D) →
+              </button>
+            </div>
           </div>
         </>
       ) : (
@@ -471,71 +586,100 @@ function RevealCard({
   const jev = reveal.jev;
 
   return (
-    <div class="reveal">
-      <p class={`truth ${reveal.truth.isThreat ? 'threat' : 'benign'}`}>
+    <div class="flex flex-col gap-4">
+      <p
+        class={`text-center text-xl font-bold tracking-widest ${
+          reveal.truth.isThreat ? 'text-error' : 'text-success'
+        }`}
+      >
         真実: {reveal.truth.isThreat ? '脅威（ハイジャック計画）' : '無害な乗客'}
       </p>
 
-      <div class="verdict-grid">
-        <section class="panel">
-          <h2>あなた（{formatDuration(reveal.human.elapsedMs)}）</h2>
-          <p>
-            {reveal.human.verdict === 'detain' ? '拘束' : '通過'}・確信度{' '}
-            {Math.round(reveal.human.confidence * 100)}%
-          </p>
-          <p class={`points ${reveal.human.points >= 0 ? 'plus' : 'minus'}`}>
-            {reveal.human.points >= 0 ? '+' : ''}
-            {reveal.human.points}
-          </p>
-        </section>
+      <div class="grid gap-4 sm:grid-cols-2">
+        <div class="card border border-base-300 bg-base-200">
+          <div class="card-body">
+            <h2 class="card-title text-base">
+              あなた
+              <span class="text-sm font-normal opacity-60">
+                （{formatDuration(reveal.human.elapsedMs)}）
+              </span>
+            </h2>
+            <p>
+              {reveal.human.verdict === 'detain' ? '拘束' : '通過'}・確信度{' '}
+              {Math.round(reveal.human.confidence * 100)}%
+            </p>
+            <p
+              class={`text-3xl font-bold tabular-nums ${
+                reveal.human.points >= 0 ? 'text-success' : 'text-error'
+              }`}
+            >
+              {reveal.human.points >= 0 ? '+' : ''}
+              {reveal.human.points}
+            </p>
+          </div>
+        </div>
 
-        <section class="panel">
-          <h2>Jev（{formatDuration(jev.latencyMs)}）</h2>
-          {jev.decision.kind === 'decided' ? (
-            <>
-              <p>
-                {jev.decision.verdict === 'detain' ? '拘束' : '通過'}・確信度{' '}
-                {Math.round(jev.decision.verdictConfidence * 100)}%
-              </p>
-              <p class="muted">
-                ハイジャック計画の見立て {jev.decision.threatProbability.toFixed(2)}
-              </p>
-              <p class={`points ${jev.points >= 0 ? 'plus' : 'minus'}`}>
-                {jev.points >= 0 ? '+' : ''}
-                {jev.points}
-              </p>
-              <h2>着眼点</h2>
-              {Object.entries(jev.decision.aspects).map(([id, value]) => (
-                <div class="bar" key={id}>
-                  <span>{ASPECT_LABELS[id as keyof typeof ASPECT_LABELS]}</span>
-                  <span class="track">
-                    <span class="fill" style={`width:${Math.round(value * 100)}%`} />
-                  </span>
-                  <span>{value.toFixed(2)}</span>
-                </div>
-              ))}
-            </>
-          ) : (
-            <p class="muted">回線エラー（判定不能・0 点）</p>
-          )}
-        </section>
+        <div class="card border border-base-300 bg-base-200">
+          <div class="card-body">
+            <h2 class="card-title text-base">
+              Jev
+              <span class="text-sm font-normal opacity-60">（{formatDuration(jev.latencyMs)}）</span>
+            </h2>
+            {jev.decision.kind === 'decided' ? (
+              <>
+                <p>
+                  {jev.decision.verdict === 'detain' ? '拘束' : '通過'}・確信度{' '}
+                  {Math.round(jev.decision.verdictConfidence * 100)}%
+                </p>
+                <p class="text-sm opacity-60">
+                  ハイジャック計画の見立て {jev.decision.threatProbability.toFixed(2)}
+                </p>
+                <p
+                  class={`text-3xl font-bold tabular-nums ${
+                    jev.points >= 0 ? 'text-success' : 'text-error'
+                  }`}
+                >
+                  {jev.points >= 0 ? '+' : ''}
+                  {jev.points}
+                </p>
+
+                <h3 class="mt-2 text-xs tracking-widest opacity-60">着眼点</h3>
+                {Object.entries(jev.decision.aspects).map(([id, value]) => (
+                  <div class="grid grid-cols-[4rem_1fr_2.5rem] items-center gap-2 text-sm" key={id}>
+                    <span class="opacity-70">
+                      {ASPECT_LABELS[id as keyof typeof ASPECT_LABELS]}
+                    </span>
+                    <progress class="progress progress-primary" value={value} max={1} />
+                    <span class="text-right tabular-nums">{value.toFixed(2)}</span>
+                  </div>
+                ))}
+              </>
+            ) : (
+              <p class="opacity-60">回線エラー（判定不能・0 点）</p>
+            )}
+          </div>
+        </div>
       </div>
 
       {reveal.missedByHuman.length > 0 ? (
-        <p class="muted">
-          あなたが見なかったもの:{' '}
-          {reveal.missedByHuman.map((item) => INSPECTED_LABELS[item]).join('、')}
-        </p>
+        <div role="alert" class="alert alert-warning alert-soft">
+          <span>
+            あなたが見なかったもの:{' '}
+            {reveal.missedByHuman.map((item) => INSPECTED_LABELS[item]).join('、')}
+          </span>
+        </div>
       ) : null}
 
-      <div class="hud">
-        <span>
-          累計 人間 <strong>{totals.human}</strong>
-        </span>
-        <span>
-          Jev <strong>{totals.jev}</strong>
-        </span>
-        <button type="button" class="spacer" onClick={onNext}>
+      <div class="navbar min-h-0 rounded-box border border-base-300 bg-base-200 px-4 py-2">
+        <div class="flex flex-1 flex-wrap gap-4">
+          <span class="tabular-nums">
+            累計 人間 <span class="font-bold">{totals.human}</span>
+          </span>
+          <span class="tabular-nums">
+            Jev <span class="font-bold">{totals.jev}</span>
+          </span>
+        </div>
+        <button type="button" class="btn btn-primary" onClick={onNext}>
           {index + 1 < PASSENGERS_PER_SHIFT ? '次の乗客 →' : '結果を見る →'}
         </button>
       </div>

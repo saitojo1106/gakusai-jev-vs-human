@@ -22,13 +22,12 @@ const replayDelays = (perPassengerMs: readonly number[]): number[] => {
   return perPassengerMs.map((ms) => ms * stretch);
 };
 
-export default function JevSorting({
-  shiftId,
-  jev,
-}: {
-  shiftId: string;
-  jev: JevTimings;
-}) {
+const LANES = [
+  { id: 'pass', label: '通過' },
+  { id: 'detain', label: '拘束' },
+] as const;
+
+export default function JevSorting({ shiftId, jev }: { shiftId: string; jev: JevTimings }) {
   const [landed, setLanded] = useState<number[]>([]);
   const [sealed, setSealed] = useState(false);
 
@@ -51,35 +50,47 @@ export default function JevSorting({
     setSealed(true);
   };
 
-  const lanes = [
-    { id: 'pass', label: '通過' },
-    { id: 'detain', label: '拘束' },
-  ] as const;
-
   return (
-    <section class="sorting">
-      <h1>Jev が仕分け中…</h1>
+    <section>
+      <h1 class="text-3xl font-bold sm:text-4xl">Jev が仕分け中…</h1>
 
-      <div class="sorting-lanes">
-        {lanes.map((lane, laneIndex) => (
-          <div class={`lane ${sealed ? 'sealed' : ''}`} key={lane.id}>
-            <h2>{lane.label}</h2>
-            <div class="lane-slots">
-              {landed
-                .filter((index) => index % 2 === laneIndex)
-                .map((index) => (
-                  <span class="sealed-card" key={index} aria-label="封印された判定" />
-                ))}
+      <progress
+        class="progress progress-primary my-5 w-full"
+        value={landed.length}
+        max={PASSENGERS_PER_SHIFT}
+      />
+
+      <div class="grid grid-cols-2 gap-4">
+        {LANES.map((lane, laneIndex) => (
+          <div class="card border border-base-300 bg-neutral" key={lane.id}>
+            <div class="card-body relative min-h-40 items-center p-4">
+              <h2 class="text-xs tracking-[0.2em] opacity-60">{lane.label}</h2>
+              <div class="flex flex-wrap justify-center gap-1.5">
+                {landed
+                  .filter((index) => index % 2 === laneIndex)
+                  .map((index) => (
+                    <span
+                      key={index}
+                      aria-label="封印された判定"
+                      class="sealed-card animate-land h-9 w-6 rounded-xs border border-base-300"
+                    />
+                  ))}
+              </div>
+              {sealed ? (
+                <div class="absolute inset-0 grid place-items-center rounded-box bg-neutral/85 backdrop-blur-sm">
+                  <span class="badge badge-primary badge-lg tracking-[0.2em]">封印済</span>
+                </div>
+              ) : null}
             </div>
-            {sealed ? <p class="lane-seal">封印済</p> : null}
           </div>
         ))}
       </div>
 
-      <p class="sorting-status">
+      <p class="mt-5 min-h-12 text-lg">
         {done ? (
           <>
-            Jev: {PASSENGERS_PER_SHIFT} 人を <strong>{seconds(jev.totalMs)} 秒</strong>
+            Jev: {PASSENGERS_PER_SHIFT} 人を{' '}
+            <span class="font-bold text-primary">{seconds(jev.totalMs)} 秒</span>
             で仕分け完了。判定は封印されました。
             {jev.failed > 0 ? ` （${jev.failed} 人は回線エラー）` : ''}
           </>
@@ -89,21 +100,20 @@ export default function JevSorting({
           </>
         )}
       </p>
-      <p class="muted sorting-note">
+
+      <p class="mb-4 text-sm opacity-60">
         実時間 {seconds(jev.totalMs)} 秒。速すぎて見えないので、再生だけ引き伸ばしています。
       </p>
 
-      <p>
-        {done ? (
-          <a href={`/play/${shiftId}/0`}>
-            <button type="button">あなたの番です。配置につく →</button>
-          </a>
-        ) : (
-          <button type="button" onClick={skip}>
-            スキップ
-          </button>
-        )}
-      </p>
+      {done ? (
+        <a href={`/play/${shiftId}/0`} class="btn btn-primary btn-lg">
+          あなたの番です。配置につく →
+        </a>
+      ) : (
+        <button type="button" class="btn btn-ghost" onClick={skip}>
+          スキップ
+        </button>
+      )}
     </section>
   );
 }

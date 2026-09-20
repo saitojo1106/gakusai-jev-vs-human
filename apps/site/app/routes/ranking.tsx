@@ -14,65 +14,81 @@ export default createRoute(async (c) => {
   const ranking = await usecases.getRanking(airport === undefined ? {} : { airport });
 
   return c.render(
-    <main class="shell narrow">
-      <h1>ランキング</h1>
-      <form method="get" class="field">
+    <main class="mx-auto max-w-3xl px-4 py-8">
+      <h1 class="mb-6 text-3xl font-bold">ランキング</h1>
+
+      <form method="get" class="mb-6 flex flex-wrap gap-2">
         <input
           type="text"
           name="airport"
           maxLength={20}
           value={airport ?? ''}
           placeholder="空港名で絞り込む"
+          class="input input-bordered grow"
         />
-        <button type="submit">絞り込む</button>
+        <button type="submit" class="btn btn-primary">
+          絞り込む
+        </button>
         {airport === undefined ? null : (
-          <a href="/ranking">
-            <button type="button">解除</button>
+          <a href="/ranking" class="btn btn-ghost">
+            解除
           </a>
         )}
       </form>
 
       {ranking.length === 0 ? (
-        <p class="muted">まだ誰も検査を終えていません。</p>
+        <div class="alert">
+          <span>まだ誰も検査を終えていません。</span>
+        </div>
       ) : (
-        <table>
-          <thead>
-            <tr>
-              <th>順位</th>
-              <th>空港名</th>
-              <th>レベル</th>
-              <th>スコア</th>
-              <th>Jev との差</th>
-              <th>日時</th>
-              <th />
-            </tr>
-          </thead>
-          <tbody>
-            {ranking.map((entry, i) => (
-              <tr key={entry.resultId}>
-                <td>{i + 1}</td>
-                <td>{entry.airport}</td>
-                <td>
-                  Lv.{entry.level} {LEVELS[entry.level].title}
-                </td>
-                <td>{entry.points}</td>
-                <td class={entry.marginOverJev >= 0 ? 'mark-ok' : 'mark-ng'}>
-                  {entry.marginOverJev >= 0 ? '+' : ''}
-                  {entry.marginOverJev}
-                </td>
-                <td>{formatDate(entry.finishedAt)}</td>
-                <td>
-                  <a href={`/r/${entry.resultId}`}>詳細</a>
-                </td>
+        <div class="overflow-x-auto rounded-box border border-base-300">
+          <table class="table table-zebra">
+            <thead>
+              <tr>
+                <th>順位</th>
+                <th>空港名</th>
+                <th>レベル</th>
+                <th class="text-right">スコア</th>
+                <th class="text-right">Jev との差</th>
+                <th>日時</th>
+                <th />
               </tr>
-            ))}
-          </tbody>
-        </table>
+            </thead>
+            <tbody>
+              {ranking.map((entry, i) => (
+                <tr key={entry.resultId}>
+                  <td class="font-bold tabular-nums">{i + 1}</td>
+                  <td class="font-medium">{entry.airport}</td>
+                  <td>
+                    <span class="badge badge-outline whitespace-nowrap">
+                      Lv.{entry.level} {LEVELS[entry.level].title}
+                    </span>
+                  </td>
+                  <td class="text-right tabular-nums">{entry.points}</td>
+                  <td
+                    class={`text-right tabular-nums ${entry.marginOverJev >= 0 ? 'text-success' : 'text-error'}`}
+                  >
+                    {entry.marginOverJev >= 0 ? '+' : ''}
+                    {entry.marginOverJev}
+                  </td>
+                  <td class="whitespace-nowrap opacity-70">{formatDate(entry.finishedAt)}</td>
+                  <td>
+                    <a class="link link-primary" href={`/r/${entry.resultId}`}>
+                      詳細
+                    </a>
+                  </td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        </div>
       )}
 
-      <p>
-        <a href="/">タイトルに戻る</a>
-      </p>
+      <div class="mt-8">
+        <a class="link link-primary" href="/">
+          タイトルに戻る
+        </a>
+      </div>
     </main>,
     { title: 'ランキング' },
   );
