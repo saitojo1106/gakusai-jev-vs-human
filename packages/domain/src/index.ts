@@ -1,3 +1,4 @@
+export * from './i18n.js';
 export * from './types.js';
 export * from './draft.js';
 export * from './constants.js';

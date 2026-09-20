@@ -1,5 +1,7 @@
 import { TONE_LABELS } from '@game/domain/display';
-import type { InterviewExchange, QuestionId } from '@game/domain';
+import type { InterviewExchange, Locale, QuestionId } from '@game/domain';
+import { FOLLOW_UP_UNLOCKED_AFTER } from '@game/domain';
+import { ui } from '../i18n.js';
 import { useEffect, useRef, useState } from 'hono/jsx';
 import { conversationOrder } from './interview-order.js';
 
@@ -11,6 +13,7 @@ export interface InterviewPanelProps {
   readonly portrait: string;
   readonly followUpUnlocked: boolean;
   readonly onAsk: (id: QuestionId) => void;
+  readonly locale: Locale;
 }
 
 interface Scrollable {
@@ -18,10 +21,10 @@ interface Scrollable {
   scrollHeight: number;
 }
 
-const OfficerAvatar = () => (
+const OfficerAvatar = ({ initial }: { initial: string }) => (
   <div class="avatar avatar-placeholder chat-image">
     <div class="w-8 rounded-full bg-primary text-primary-content">
-      <span class="text-xs">検</span>
+      <span class="text-xs">{initial}</span>
     </div>
   </div>
 );
@@ -40,7 +43,9 @@ export const InterviewPanel = ({
   portrait,
   followUpUnlocked,
   onAsk,
+  locale,
 }: InterviewPanelProps) => {
+  const t = ui(locale);
   const [answered, setAnswered] = useState<QuestionId[]>([]);
   const canvas = useRef<Scrollable | null>(null);
 
@@ -69,13 +74,13 @@ export const InterviewPanel = ({
       >
         {shown.length === 0 ? (
           <p class="grid h-full place-items-center text-sm opacity-50">
-            下の選択肢から質問してください
+            {t.askPrompt}
           </p>
         ) : (
           shown.map((exchange) => (
             <div key={exchange.id}>
               <div class="chat chat-end">
-                <OfficerAvatar />
+                <OfficerAvatar initial={t.officerInitial} />
                 <div class="chat-bubble chat-bubble-primary text-sm">{exchange.question}</div>
               </div>
 
@@ -88,7 +93,7 @@ export const InterviewPanel = ({
                       exchange.tone === 'steady' ? 'opacity-50' : 'text-warning'
                     }`}
                   >
-                    {TONE_LABELS[exchange.tone]}
+                    {TONE_LABELS[exchange.tone][locale]}
                   </div>
                 </div>
               ) : exchange.id === pending ? (
@@ -105,7 +110,7 @@ export const InterviewPanel = ({
       </div>
 
       {remaining.length === 0 ? (
-        <p class="text-center text-sm opacity-50">聞けることはもうありません。</p>
+        <p class="text-center text-sm opacity-50">{t.nothingLeftToAsk}</p>
       ) : (
         <div class="flex gap-2 overflow-x-auto pb-1">
           {remaining.map((exchange) => {
@@ -122,8 +127,8 @@ export const InterviewPanel = ({
               >
                 {exchange.id === 'follow_up'
                   ? locked
-                    ? '追い質問 ⚡ 3 問で解放'
-                    : '追い質問 ⚡'
+                    ? t.followUpLocked(FOLLOW_UP_UNLOCKED_AFTER)
+                    : t.followUp
                   : exchange.question}
               </button>
             );

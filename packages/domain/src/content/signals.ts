@@ -1,12 +1,14 @@
 import type { DossierDraft } from '../draft.js';
+import type { Localized } from '../i18n.js';
 import type { Prng } from '../services/prng.js';
 import type { ForgeryObservation, InspectedItem, SignalId } from '../types.js';
 import { COUNTRIES_BY_STABILITY } from './countries.js';
 import { SUSPICIOUS_ITEMS, TOOL_ITEMS } from './items.js';
+import { PACKED_BY } from './questions.js';
 
 export interface Signal {
   readonly id: SignalId;
-  readonly label: string;
+  readonly label: Localized;
   readonly pThreat: number;
   readonly pBenign: number;
   readonly group?: string;
@@ -25,7 +27,7 @@ export const FORGERY_OBSERVATIONS: readonly ForgeryObservation[] = [
 export const SIGNALS: readonly Signal[] = [
   {
     id: 'one_way_cash_lastminute' as SignalId,
-    label: '片道・現金・直前購入',
+    label: { ja: '片道・現金・直前購入', en: 'One-way, cash, bought last minute' },
     pThreat: 0.55,
     pBenign: 0.05,
     revealedBy: ['boarding_pass'],
@@ -38,7 +40,7 @@ export const SIGNALS: readonly Signal[] = [
   },
   {
     id: 'purpose_item_mismatch' as SignalId,
-    label: '渡航目的と持ち物の不一致',
+    label: { ja: '渡航目的と持ち物の不一致', en: 'Belongings do not match stated purpose' },
     pThreat: 0.6,
     pBenign: 0.1,
     revealedBy: ['belongings', 'question:purpose', 'question:bag_contents'],
@@ -56,18 +58,18 @@ export const SIGNALS: readonly Signal[] = [
   },
   {
     id: 'interview_contradiction' as SignalId,
-    label: '質問の回答の食い違い',
+    label: { ja: '質問の回答の食い違い', en: 'Contradictory answers' },
     pThreat: 0.5,
     pBenign: 0.08,
     revealedBy: ['question:follow_up', 'question:who_packed', 'question:bag_contents'],
     apply: (draft) => {
       draft.contradiction = true;
-      draft.packedBy = '知人から預かった荷物も入っています';
+      draft.packedBy = PACKED_BY[3] as Localized;
     },
   },
   {
     id: 'forged_passport' as SignalId,
-    label: '偽造された身分証',
+    label: { ja: '偽造された身分証', en: 'Forged identity document' },
     pThreat: 0.45,
     pBenign: 0.03,
     revealedBy: ['passport_inspection'],
@@ -78,7 +80,7 @@ export const SIGNALS: readonly Signal[] = [
   },
   {
     id: 'mouth_wrapped_object' as SignalId,
-    label: '口内に包まれた物体',
+    label: { ja: '口内に包まれた物体', en: 'Wrapped object in the mouth' },
     pThreat: 0.25,
     pBenign: 0.02,
     group: 'mouth',
@@ -89,9 +91,11 @@ export const SIGNALS: readonly Signal[] = [
   },
   {
     id: 'body_scan_anomaly' as SignalId,
-    label: '体内に隠されたもの',
+    label: { ja: '体内に隠されたもの', en: 'Something hidden inside the body' },
     pThreat: 0.45,
-    pBenign: 0.04,
+    // X 線は 1 シフト 1 回の必殺技なので、無害な乗客には絶対に出さない。
+    // 見つかれば確実に脅威。ただし脅威の 55% は何も出ないので万能ではない。
+    pBenign: 0,
     revealedBy: ['body_scan'],
     apply: (draft, rng) => {
       draft.bodyScan.finding = rng.bool(0.6) ? 'dense_object' : 'organic_mass';
@@ -99,7 +103,7 @@ export const SIGNALS: readonly Signal[] = [
   },
   {
     id: 'watchlist_hit' as SignalId,
-    label: '監視リスト該当',
+    label: { ja: '監視リスト該当', en: 'Watchlist hit' },
     pThreat: 0.35,
     pBenign: 0.02,
     revealedBy: ['record'],
@@ -109,7 +113,7 @@ export const SIGNALS: readonly Signal[] = [
   },
   {
     id: 'nervous_demeanor' as SignalId,
-    label: '発汗・そわそわ',
+    label: { ja: '発汗・そわそわ', en: 'Sweating and fidgeting' },
     pThreat: 0.4,
     pBenign: 0.25,
     revealedBy: [],
@@ -119,7 +123,7 @@ export const SIGNALS: readonly Signal[] = [
   },
   {
     id: 'mouth_refused' as SignalId,
-    label: '口内検査の拒否',
+    label: { ja: '口内検査の拒否', en: 'Refused the mouth inspection' },
     pThreat: 0.2,
     pBenign: 0.1,
     group: 'mouth',
@@ -130,7 +134,7 @@ export const SIGNALS: readonly Signal[] = [
   },
   {
     id: 'conflict_residence' as SignalId,
-    label: '紛争地域の居住歴',
+    label: { ja: '紛争地域の居住歴', en: 'Lived in a conflict zone' },
     pThreat: 0.35,
     pBenign: 0.2,
     revealedBy: ['residence'],
@@ -146,7 +150,7 @@ export const SIGNALS: readonly Signal[] = [
   },
   {
     id: 'expired_document' as SignalId,
-    label: '身分証の期限切れ',
+    label: { ja: '身分証の期限切れ', en: 'Expired identity document' },
     pThreat: 0.2,
     pBenign: 0.15,
     revealedBy: ['identity'],
@@ -157,7 +161,7 @@ export const SIGNALS: readonly Signal[] = [
   },
   {
     id: 'minor_record' as SignalId,
-    label: '軽微な前歴',
+    label: { ja: '軽微な前歴', en: 'Minor criminal record' },
     pThreat: 0.3,
     pBenign: 0.2,
     revealedBy: ['record'],

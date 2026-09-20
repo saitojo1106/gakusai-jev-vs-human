@@ -31,8 +31,8 @@ describe('buildShareText', () => {
     const text = buildShareText(result(), url);
     expect(text).toContain('ぼくの空港');
     expect(text).toContain('Lv.4');
-    expect(text).toContain(LEVELS[4].title);
-    expect(text).toContain(LEVELS[4].catchphrase);
+    expect(text).toContain(LEVELS[4].title.ja);
+    expect(text).toContain(LEVELS[4].catchphrase.ja);
     expect(text).toContain('120');
     expect(text).toContain('100');
     expect(text).toContain(url);
@@ -67,5 +67,20 @@ describe('buildShareText', () => {
 
   it('URL は末尾に置く', () => {
     expect(buildShareText(result(), url).endsWith(url)).toBe(true);
+  });
+});
+
+describe('buildShareText（英語）', () => {
+  it('英語の称号・キャッチコピー・ハッシュタグを使う', () => {
+    const text = buildShareText(result(), 'https://example.test/r/abc', 'en');
+    expect(text).toContain(LEVELS[4].title.en);
+    expect(text).toContain(LEVELS[4].catchphrase.en);
+    expect(text).toContain('#CheckpointVsJev');
+    expect(text).not.toContain('保安検査');
+  });
+
+  it('日本語と英語で別の本文になる', () => {
+    const url = 'https://example.test/r/abc';
+    expect(buildShareText(result(), url, 'en')).not.toBe(buildShareText(result(), url, 'ja'));
   });
 });

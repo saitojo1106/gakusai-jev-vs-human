@@ -1,5 +1,6 @@
 import { BODY_SCAN_READOUTS } from '@game/domain/display';
-import type { BodyScanFinding } from '@game/domain';
+import type { BodyScanFinding, Locale } from '@game/domain';
+import { ui } from '../i18n.js';
 
 export interface XrayPanelProps {
   readonly finding: BodyScanFinding | null;
@@ -7,6 +8,7 @@ export interface XrayPanelProps {
   readonly scanning: boolean;
   readonly onScan: () => void;
   readonly onReopen: () => void;
+  readonly locale: Locale;
 }
 
 const auraFor = (scanning: boolean, available: boolean): string => {
@@ -14,19 +16,27 @@ const auraFor = (scanning: boolean, available: boolean): string => {
   return scanning ? 'aura aura-holo aura-lg duration-[1.5s]' : 'aura aura-lg text-warning';
 };
 
-export const XrayPanel = ({ finding, usedOn, scanning, onScan, onReopen }: XrayPanelProps) => {
+export const XrayPanel = ({
+  finding,
+  usedOn,
+  scanning,
+  onScan,
+  onReopen,
+  locale,
+}: XrayPanelProps) => {
+  const t = ui(locale);
   if (finding === null) {
     const available = usedOn === null;
     const label = scanning
-      ? 'スキャン中…'
+      ? t.xrayScanning
       : available
-        ? 'この乗客に X 線検査を使う'
-        : `使用済み（${(usedOn ?? 0) + 1} 人目）`;
+        ? t.xrayUse
+        : t.xrayUsedOn((usedOn ?? 0) + 1);
 
     return (
       <>
         <div role="alert" class="alert alert-warning alert-soft py-2">
-          <span>X 線検査は 1 シフトに 1 回だけ。使いどころを選んでください。</span>
+          <span>{t.xrayOnce}</span>
         </div>
         <div class={`self-start ${auraFor(scanning, available)}`}>
           <button
@@ -50,19 +60,19 @@ export const XrayPanel = ({ finding, usedOn, scanning, onScan, onReopen }: XrayP
       {readout.alarming ? (
         <div class="aura aura-glow aura-xl block text-error duration-[2s]">
           <div role="alert" class="alert alert-error">
-            <span class="font-bold">{readout.headline}</span>
+            <span class="font-bold">{readout.headline[locale]}</span>
           </div>
         </div>
       ) : (
         <div role="alert" class="alert alert-soft">
-          <span>{readout.headline}</span>
+          <span>{readout.headline[locale]}</span>
         </div>
       )}
-      <p class="text-sm">{readout.detail}</p>
+      <p class="text-sm">{readout.detail[locale]}</p>
       <button type="button" class="btn btn-outline btn-sm self-start" onClick={onReopen}>
-        スキャン画像を見る
+        {t.xrayViewScan}
       </button>
-      <p class="text-sm opacity-60">このシフトの X 線検査はもう使えません。</p>
+      <p class="text-sm opacity-60">{t.xraySpent}</p>
     </>
   );
 };

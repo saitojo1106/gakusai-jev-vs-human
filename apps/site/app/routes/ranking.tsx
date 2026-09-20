@@ -1,6 +1,7 @@
 import { createUsecases } from '@game/application';
 import { LEVELS } from '@game/domain/display';
 import { createRoute } from 'honox/factory';
+import { ui } from '../i18n.js';
 import { createDeps } from '../deps.js';
 
 const formatDate = (iso: string): string => {
@@ -10,12 +11,14 @@ const formatDate = (iso: string): string => {
 
 export default createRoute(async (c) => {
   const usecases = createUsecases(createDeps(c.env as AppBindings, c.req.url));
+  const locale = c.get('locale');
+  const t = ui(locale);
   const airport = c.req.query('airport');
   const ranking = await usecases.getRanking(airport === undefined ? {} : { airport });
 
   return c.render(
     <main class="mx-auto max-w-3xl px-4 py-8">
-      <h1 class="mb-6 text-3xl font-bold">ランキング</h1>
+      <h1 class="mb-6 text-3xl font-bold">{t.ranking}</h1>
 
       <form method="get" class="mb-6 flex flex-wrap gap-2">
         <input
@@ -23,34 +26,34 @@ export default createRoute(async (c) => {
           name="airport"
           maxLength={20}
           value={airport ?? ''}
-          placeholder="空港名で絞り込む"
+          placeholder={t.filterByAirport}
           class="input input-bordered grow"
         />
         <button type="submit" class="btn btn-primary">
-          絞り込む
+          {t.filter}
         </button>
         {airport === undefined ? null : (
           <a href="/ranking" class="btn btn-ghost">
-            解除
+            {t.clearFilter}
           </a>
         )}
       </form>
 
       {ranking.length === 0 ? (
         <div class="alert">
-          <span>まだ誰も検査を終えていません。</span>
+          <span>{t.nobodyYet}</span>
         </div>
       ) : (
         <div class="overflow-x-auto rounded-box border border-base-300">
           <table class="table table-zebra">
             <thead>
               <tr>
-                <th>順位</th>
-                <th>空港名</th>
-                <th>レベル</th>
-                <th class="text-right">スコア</th>
-                <th class="text-right">Jev との差</th>
-                <th>日時</th>
+                <th>{t.colRank}</th>
+                <th>{t.colAirport}</th>
+                <th>{t.colLevel}</th>
+                <th class="text-right">{t.colScore}</th>
+                <th class="text-right">{t.colMargin}</th>
+                <th>{t.colDate}</th>
                 <th />
               </tr>
             </thead>
@@ -61,7 +64,7 @@ export default createRoute(async (c) => {
                   <td class="font-medium">{entry.airport}</td>
                   <td>
                     <span class="badge badge-outline whitespace-nowrap">
-                      Lv.{entry.level} {LEVELS[entry.level].title}
+                      Lv.{entry.level} {LEVELS[entry.level].title[locale]}
                     </span>
                   </td>
                   <td class="text-right tabular-nums">{entry.points}</td>
@@ -74,7 +77,7 @@ export default createRoute(async (c) => {
                   <td class="whitespace-nowrap opacity-70">{formatDate(entry.finishedAt)}</td>
                   <td>
                     <a class="link link-primary" href={`/r/${entry.resultId}?from=ranking`}>
-                      詳細
+                      {t.details}
                     </a>
                   </td>
                 </tr>
@@ -86,10 +89,10 @@ export default createRoute(async (c) => {
 
       <div class="mt-8">
         <a class="link link-primary" href="/">
-          タイトルに戻る
+          {t.backToTitle}
         </a>
       </div>
     </main>,
-    { title: 'ランキング' },
+    { title: t.ranking, locale, url: c.req.url },
   );
 });

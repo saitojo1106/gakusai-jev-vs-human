@@ -1,4 +1,6 @@
+import type { Locale } from '@game/domain';
 import { useState } from 'hono/jsx';
+import { ui } from '../i18n.js';
 import { inputValue } from './dom.js';
 import JevSorting, { type JevTimings } from './JevSorting.js';
 
@@ -8,7 +10,8 @@ type Phase =
   | { kind: 'demo'; shiftId: string; jev: JevTimings }
   | { kind: 'error'; message: string };
 
-export default function StartShift() {
+export default function StartShift({ locale }: { locale: Locale }) {
+  const t = ui(locale);
   const [airport, setAirport] = useState('');
   const [phase, setPhase] = useState<Phase>({ kind: 'idle' });
 
@@ -27,9 +30,7 @@ export default function StartShift() {
       setPhase({
         kind: 'error',
         message:
-          body.error === 'airport_too_long'
-            ? '空港名は 20 文字までです。'
-            : '空港名を入力してください。',
+          body.error === 'airport_too_long' ? t.airportTooLong : t.airportRequired,
       });
       return;
     }
@@ -39,16 +40,16 @@ export default function StartShift() {
   };
 
   if (phase.kind === 'demo') {
-    return <JevSorting shiftId={phase.shiftId} jev={phase.jev} />;
+    return <JevSorting shiftId={phase.shiftId} jev={phase.jev} locale={locale} />;
   }
 
   return (
     <form onSubmit={start}>
-      <h1 class="text-4xl font-bold tracking-wide sm:text-5xl">保安検査 vs Jev</h1>
+      <h1 class="text-4xl font-bold tracking-wide sm:text-5xl">{t.siteTitle}</h1>
       <p class="mt-4 mb-8 opacity-70">
-        乗客 10 人を審査して、AI 判定モデル Jev とスコアを競う。
+        {t.startLead}
         <br />
-        脅威を通過させればハイジャック、無害な人を拘束すれば苦情。
+        {t.startRules}
       </p>
 
       <div class="join w-full">
@@ -56,7 +57,7 @@ export default function StartShift() {
           type="text"
           value={airport}
           maxLength={20}
-          placeholder="あなたの空港名"
+          placeholder={t.airportPlaceholder}
           autoComplete="off"
           class="input input-bordered input-lg join-item grow"
           onInput={(e) => setAirport(inputValue(e))}
@@ -69,10 +70,10 @@ export default function StartShift() {
           {phase.kind === 'starting' ? (
             <>
               <span class="loading loading-spinner loading-sm" />
-              Jev が審査中…
+              {t.judging}
             </>
           ) : (
-            'シフト開始'
+            t.startShift
           )}
         </button>
       </div>

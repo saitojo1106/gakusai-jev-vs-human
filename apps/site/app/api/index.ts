@@ -1,3 +1,4 @@
+import { LOCALE_QUERY, resolveLocale } from '../i18n.js';
 import { AppError, createUsecases, isAppError } from '@game/application';
 import type { AppErrorCode, UsecaseDeps } from '@game/application';
 import {
@@ -56,6 +57,11 @@ export const createApi = (deps: UsecaseDeps) => {
       const response = await usecases.servePassenger({
         shiftId: c.req.param('id'),
         index: passengerIndex(c.req.param('n')),
+        locale: resolveLocale({
+          query: c.req.query(LOCALE_QUERY),
+          cookie: c.req.header('Cookie'),
+          acceptLanguage: c.req.header('Accept-Language'),
+        }),
       });
       return c.json(response);
     })

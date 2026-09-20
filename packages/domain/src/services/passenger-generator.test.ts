@@ -1,6 +1,7 @@
 import { describe, expect, it } from 'vitest';
 import { PASSENGERS_PER_SHIFT, THREAT_RATE } from '../constants.js';
 import { ARCHETYPES, PASSENGER_IMAGES, passengerImage } from '../content/archetypes.js';
+import { NOTABLE_ITEM_LABELS } from '../display.js';
 import { countryOf } from '../content/countries.js';
 import { SIGNALS, signalOf } from '../content/signals.js';
 import { QUESTIONS } from '../content/questions.js';
@@ -239,5 +240,36 @@ describe('SIGNALS', () => {
     for (const signal of SIGNALS) {
       for (const item of signal.revealedBy) expect(inspectable).toContain(item);
     }
+  });
+});
+
+describe('X 線検査は必殺技', () => {
+  const everyone = Array.from({ length: 400 }, (_, i) =>
+    generatePassenger(seed(`xray-${i}`), at(i % PASSENGERS_PER_SHIFT)),
+  );
+
+  const anomalous = everyone.filter(
+    (p) => p.bodyScan.finding === 'dense_object' || p.bodyScan.finding === 'organic_mass',
+  );
+
+  it('体内スキャンの異常は脅威にしか出ない', () => {
+    expect(anomalous.length).toBeGreaterThan(0);
+    expect(anomalous.every((p) => p.truth.isThreat)).toBe(true);
+  });
+
+  it('異常なしでも脅威は残る（X 線は万能ではない）', () => {
+    const quietThreats = everyone.filter(
+      (p) => p.truth.isThreat && p.bodyScan.finding !== 'dense_object' && p.bodyScan.finding !== 'organic_mass',
+    );
+    expect(quietThreats.length).toBeGreaterThan(0);
+  });
+});
+
+describe('目立つ持ち物のラベル', () => {
+  it('全アーキタイプの notableItems に対訳がある', () => {
+    const missing = ARCHETYPES.flatMap((a) =>
+      a.notableItems.filter((item) => NOTABLE_ITEM_LABELS[item] === undefined),
+    );
+    expect(missing).toEqual([]);
   });
 });

@@ -1,12 +1,15 @@
 import { PASSENGERS_PER_SHIFT, REFERENCE_DATE, THREAT_RATE } from '../constants.js';
 import { ARCHETYPES, type Archetype } from '../content/archetypes.js';
 import { COUNTRIES_BY_STABILITY, DESTINATIONS } from '../content/countries.js';
+import { DEFAULT_LOCALE } from '../i18n.js';
+import type { Locale, Localized } from '../i18n.js';
 import { ITEMS, itemOf, itemsFor } from '../content/items.js';
 import { FAMILY_NAMES, GIVEN_NAMES } from '../content/names.js';
 import {
   ACCOMMODATIONS,
   OCCUPATIONS,
   PACKED_BY,
+  UNDECIDED_ACCOMMODATION,
   PURPOSE_LABELS,
   QUESTIONS,
 } from '../content/questions.js';
@@ -157,8 +160,17 @@ const selectSignals = (rng: Prng, isThreat: boolean): Signal[] => {
   return chosen.sort((a, b) => SIGNALS.indexOf(a) - SIGNALS.indexOf(b));
 };
 
+const localized = (build: (locale: Locale) => string): Localized => ({
+  ja: build('ja'),
+  en: build('en'),
+});
+
+const listSeparator: Readonly<Record<Locale, string>> = { ja: '、', en: ', ' };
+
 const composeInterview = (draft: DossierDraft, rng: Prng): void => {
-  const labels = draft.belongings.map((b) => itemOf(b.kind)?.label ?? b.kind);
+  const labels = draft.belongings.map(
+    (b) => itemOf(b.kind)?.label ?? ({ ja: b.kind, en: b.kind } as Localized),
+  );
   const tools = draft.belongings.filter((b) => b.flags.includes('tool'));
   const suspicious = draft.belongings.filter((b) => b.flags.includes('suspicious'));
   const mismatch =
@@ -167,49 +179,95 @@ const composeInterview = (draft: DossierDraft, rng: Prng): void => {
     draft.appearance.demeanor === 'nervous' || draft.appearance.demeanor === 'sweating';
   const tone = unsettled ? 'hesitant' : 'steady';
 
-  const stay = `${draft.purpose.stayDays} 日ほど滞在します`;
-  const accommodation =
-    draft.accommodation === 'まだ決めていません'
-      ? `${draft.boardingPass.destination}に着いてから決めます`
-      : `${draft.boardingPass.destination}近くの${draft.accommodation}です`;
+  const undecided = draft.accommodation === UNDECIDED_ACCOMMODATION;
+  const oddItem =
+    labels.find((_, i) => {
+      const flags = draft.belongings[i]?.flags ?? [];
+      return flags.includes('tool') || flags.includes('suspicious');
+    }) ?? ({ ja: 'この道具', en: 'that tool' } as Localized);
 
   const followUp = draft.contradiction
     ? {
-        question: '荷造りはご自身でと伺いましたが、預かった荷物があるのは？',
-        answer: '……中身までは確認していません。頼まれただけです。',
+        question: {
+          ja: '荷造りはご自身でと伺いましたが、預かった荷物があるのは？',
+          en: 'You said you packed it yourself. So why are you carrying someone else\'s bag?',
+        } as Localized,
+        answer: {
+          ja: '……中身までは確認していません。頼まれただけです。',
+          en: "...I never checked what's inside. I was just asked to bring it.",
+        } as Localized,
         tone: 'defensive' as const,
       }
     : mismatch
       ? {
-          question: `さきほど${PURPOSE_LABELS[draft.purpose.stated]}と伺いましたが、荷物に${labels.find((l, i) => draft.belongings[i]?.flags.includes('tool') || draft.belongings[i]?.flags.includes('suspicious')) ?? 'この道具'}があるのはなぜですか？`,
-          answer: '仕事で使うものです。いつも持ち歩いています。',
+          question: localized((l) =>
+            l === 'ja'
+              ? `さきほど${PURPOSE_LABELS[draft.purpose.stated].ja}と伺いましたが、荷物に${oddItem.ja}があるのはなぜですか？`
+              : `You said this trip was for ${PURPOSE_LABELS[draft.purpose.stated].en.toLowerCase()}. Why is there ${oddItem.en.toLowerCase()} in your bag?`,
+          ),
+          answer: {
+            ja: '仕事で使うものです。いつも持ち歩いています。',
+            en: 'I use it for work. I carry it everywhere.',
+          } as Localized,
           tone: 'hesitant' as const,
         }
       : {
-          question: QUESTIONS[QUESTIONS.length - 1]?.question ?? '',
-          answer: '食い違っている点はないと思いますが。',
+          question: QUESTIONS[QUESTIONS.length - 1]?.question ?? ({ ja: '', en: '' } as Localized),
+          answer: {
+            ja: '食い違っている点はないと思いますが。',
+            en: "I don't think anything I said contradicts anything.",
+          } as Localized,
           tone: 'steady' as const,
         };
 
-  const answers: Readonly<Record<string, { answer: string; tone: 'steady' | 'hesitant' | 'defensive' }>> = {
+  const answers: Readonly<
+    Record<string, { answer: Localized; tone: 'steady' | 'hesitant' | 'defensive' }>
+  > = {
     purpose: {
-      answer: `${PURPOSE_LABELS[draft.purpose.stated]}です。${stay}。`,
+      answer: localized((l) =>
+        l === 'ja'
+          ? `${PURPOSE_LABELS[draft.purpose.stated].ja}です。${draft.purpose.stayDays} 日ほど滞在します。`
+          : `${PURPOSE_LABELS[draft.purpose.stated].en}. I'll be staying about ${draft.purpose.stayDays} days.`,
+      ),
       tone,
     },
-    occupation: { answer: `${draft.occupation}です。`, tone },
-    bag_contents: { answer: `${labels.join('、')}が入っています。`, tone: mismatch ? 'hesitant' : tone },
+    occupation: {
+      answer: localized((l) =>
+        l === 'ja' ? `${draft.occupation.ja}です。` : `${draft.occupation.en}.`,
+      ),
+      tone,
+    },
+    bag_contents: {
+      answer: localized((l) =>
+        l === 'ja'
+          ? `${labels.map((x) => x.ja).join(listSeparator.ja)}が入っています。`
+          : `${labels.map((x) => x.en.toLowerCase()).join(listSeparator.en)}.`,
+      ),
+      tone: mismatch ? 'hesitant' : tone,
+    },
     who_packed: {
-      answer: `${draft.packedBy}。`,
+      answer: localized((l) => (l === 'ja' ? `${draft.packedBy.ja}。` : `${draft.packedBy.en}.`)),
       tone: draft.contradiction ? 'defensive' : tone,
     },
-    accommodation: { answer: `${accommodation}。`, tone },
+    accommodation: {
+      answer: localized((l) =>
+        l === 'ja'
+          ? undecided
+            ? `${draft.boardingPass.destination.ja}に着いてから決めます。`
+            : `${draft.boardingPass.destination.ja}近くの${draft.accommodation.ja}です。`
+          : undecided
+            ? `I'll decide once I land at ${draft.boardingPass.destination.en}.`
+            : `${draft.accommodation.en}, near ${draft.boardingPass.destination.en}.`,
+      ),
+      tone,
+    },
     follow_up: { answer: followUp.answer, tone: followUp.tone },
   };
 
   draft.interview = QUESTIONS.map((spec) => ({
     id: spec.id,
     question: spec.id === 'follow_up' ? followUp.question : spec.question,
-    answer: answers[spec.id]?.answer ?? '',
+    answer: answers[spec.id]?.answer ?? ({ ja: '', en: '' } as Localized),
     tone: answers[spec.id]?.tone ?? 'steady',
     unlockedAfter: spec.unlockedAfter,
   }));
@@ -221,7 +279,11 @@ const composeInterview = (draft: DossierDraft, rng: Prng): void => {
   }
 };
 
-export const generatePassenger = (seed: Seed, index: PassengerIndex): Passenger => {
+export const generatePassenger = (
+  seed: Seed,
+  index: PassengerIndex,
+  locale: Locale = DEFAULT_LOCALE,
+): Passenger => {
   const rng = createPrng(`${seed}#${index}`);
   const isThreat = rng.bool(THREAT_RATE);
   const draft = buildBase(rng);
@@ -238,15 +300,18 @@ export const generatePassenger = (seed: Seed, index: PassengerIndex): Passenger 
 
   return {
     index,
-    dossier: freezeDossier(draft),
+    dossier: freezeDossier(draft, locale),
     truth,
     bodyScan: { finding: draft.bodyScan.finding },
   };
 };
 
-export const generateShift = (seed: Seed): readonly Passenger[] =>
+export const generateShift = (
+  seed: Seed,
+  locale: Locale = DEFAULT_LOCALE,
+): readonly Passenger[] =>
   Array.from({ length: PASSENGERS_PER_SHIFT }, (_, i) =>
-    generatePassenger(seed, i as PassengerIndex),
+    generatePassenger(seed, i as PassengerIndex, locale),
   );
 
 export const missedInspections = (

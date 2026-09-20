@@ -1,11 +1,13 @@
 import {
   buildReveal,
+  DEFAULT_LOCALE,
   generatePassenger,
   LEADERBOARD_SIZE,
   PASSENGERS_PER_SHIFT,
   summarizeShift,
   validateAirportName,
 } from '@game/domain';
+import type { Locale } from '@game/domain';
 import type {
   HumanDecision,
   LeaderboardEntry,
@@ -23,6 +25,12 @@ import type { UsecaseDeps } from '../ports.js';
 
 const RESULT_ID_ATTEMPTS = 8;
 const DEFAULT_RANKING_LIMIT = LEADERBOARD_SIZE;
+
+/**
+ * Jev に渡す調書は常にこの言語で作る。プレイヤーの表示言語で Jev の判定が
+ * 変わらないようにするため。乗客の中身はシード決定なので言語を変えても同一。
+ */
+const JEV_DOSSIER_LOCALE: Locale = 'ja';
 
 const unavailable = (reason: string): TimedJudgeDecision => ({
   decision: { kind: 'unavailable', reason },
@@ -78,7 +86,7 @@ export const createUsecases = (deps: UsecaseDeps) => {
       const seed = deps.ids.seed() as Seed;
       const shiftId = deps.ids.shiftId();
       const passengers = Array.from({ length: PASSENGERS_PER_SHIFT }, (_, i) =>
-        generatePassenger(seed, i as PassengerIndex),
+        generatePassenger(seed, i as PassengerIndex, JEV_DOSSIER_LOCALE),
       );
 
       const batch = await deps.judge.evaluateMany(passengers.map((p) => p.dossier));
@@ -108,10 +116,10 @@ export const createUsecases = (deps: UsecaseDeps) => {
       };
     },
 
-    servePassenger: async (input: { shiftId: string; index: number }) => {
+    servePassenger: async (input: { shiftId: string; index: number; locale?: Locale }) => {
       const record = await requireShift(deps, input.shiftId);
       const index = requireIndex(input.index);
-      const passenger = generatePassenger(record.seed, index);
+      const passenger = generatePassenger(record.seed, index, input.locale ?? DEFAULT_LOCALE);
       return {
         dossier: passenger.dossier,
         decided: record.human[index] != null,

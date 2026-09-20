@@ -1,5 +1,6 @@
 import { BODY_SCAN_READOUTS } from '@game/domain/display';
-import type { BodyScanFinding } from '@game/domain';
+import type { BodyScanFinding, Locale } from '@game/domain';
+import { ui } from '../i18n.js';
 
 export interface XrayDialogProps {
   readonly open: boolean;
@@ -7,6 +8,7 @@ export interface XrayDialogProps {
   readonly scanning: boolean;
   readonly finding: BodyScanFinding | null;
   readonly onClose: () => void;
+  readonly locale: Locale;
 }
 
 const Row = ({ label, value }: { label: string; value: string }) => (
@@ -16,16 +18,24 @@ const Row = ({ label, value }: { label: string; value: string }) => (
   </div>
 );
 
-export const XrayDialog = ({ open, portrait, scanning, finding, onClose }: XrayDialogProps) => {
+export const XrayDialog = ({
+  open,
+  portrait,
+  scanning,
+  finding,
+  onClose,
+  locale,
+}: XrayDialogProps) => {
+  const t = ui(locale);
   if (!open) return null;
 
   const readout = finding === null ? null : BODY_SCAN_READOUTS[finding];
 
   return (
-    <dialog class="modal modal-open" aria-label="X 線ボディスキャナ">
+    <dialog class="modal modal-open" aria-label={t.xrayDialogTitle}>
       <div class="modal-box max-w-lg border border-base-300">
         <h3 class="flex items-center gap-2 text-lg font-bold">
-          X 線ボディスキャナ
+          {t.xrayDialogTitle}
           {scanning ? (
             <span class="badge badge-warning badge-sm animate-pulse">SCANNING</span>
           ) : readout?.alarming ? (
@@ -50,7 +60,7 @@ export const XrayDialog = ({ open, portrait, scanning, finding, onClose }: XrayD
         {scanning ? (
           <div class="flex flex-col items-center gap-2 py-2">
             <span class="loading loading-bars loading-md text-warning" />
-            <p class="text-sm opacity-70">センサー走査中… 体内構造を解析しています</p>
+            <p class="text-sm opacity-70">{t.xrayAnalysing}</p>
           </div>
         ) : readout === null ? null : (
           <>
@@ -58,23 +68,26 @@ export const XrayDialog = ({ open, portrait, scanning, finding, onClose }: XrayD
               role="alert"
               class={`alert ${readout.alarming ? 'alert-error' : 'alert-soft'} mb-3`}
             >
-              <span class="font-bold">{readout.headline}</span>
+              <span class="font-bold">{readout.headline[locale]}</span>
             </div>
-            <p class="mb-3 text-sm">{readout.detail}</p>
-            <Row label="検出部位" value={readout.region} />
-            <Row label="推定密度" value={readout.density} />
-            <Row label="判定" value={readout.alarming ? '要拘束レベルの所見' : '所見なし'} />
+            <p class="mb-3 text-sm">{readout.detail[locale]}</p>
+            <Row label={t.xrayRegion} value={readout.region[locale]} />
+            <Row label={t.xrayDensity} value={readout.density[locale]} />
+            <Row
+              label={t.xrayVerdict}
+              value={readout.alarming ? t.xrayVerdictAlarm : t.xrayVerdictQuiet}
+            />
           </>
         )}
 
         <div class="modal-action">
           <button type="button" class="btn" onClick={onClose} disabled={scanning}>
-            閉じる
+            {t.close}
           </button>
         </div>
       </div>
       <button type="button" class="modal-backdrop" onClick={onClose} disabled={scanning}>
-        閉じる
+        {t.close}
       </button>
     </dialog>
   );

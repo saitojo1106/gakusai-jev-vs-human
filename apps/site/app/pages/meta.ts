@@ -1,5 +1,6 @@
 import { buildShareText, LEVELS } from '@game/domain';
-import type { ShiftResult } from '@game/domain';
+import type { Locale, ShiftResult } from '@game/domain';
+import { LOCALE_QUERY, ui } from '../i18n.js';
 
 export interface ResultMeta {
   readonly title: string;
@@ -10,14 +11,27 @@ export interface ResultMeta {
   readonly shareUrl: string;
 }
 
-export const buildResultMeta = (result: ShiftResult, origin: string): ResultMeta => {
+export const buildResultMeta = (
+  result: ShiftResult,
+  origin: string,
+  locale: Locale,
+): ResultMeta => {
   const card = LEVELS[result.level];
-  const url = `${origin}/r/${result.resultId}`;
-  const shareText = buildShareText(result, url);
+  const t = ui(locale);
+  // 共有先でも同じ言語で開くように、URL に言語を残す。
+  const url = `${origin}/r/${result.resultId}?${LOCALE_QUERY}=${locale}`;
+  const shareText = buildShareText(result, url, locale);
 
   return {
-    title: `${result.airport} の保安検査官レベル: Lv.${card.level} ${card.title}`,
-    description: `あなた ${result.totals.human.points} 点 / Jev ${result.totals.jev.points} 点（正答 ${result.totals.human.correct}/${result.reveals.length}・見逃し ${result.totals.human.missedThreats}）「${card.catchphrase}」`,
+    title: t.resultTitle(result.airport, card.level, card.title[locale]),
+    description: t.resultDescription({
+      human: result.totals.human.points,
+      jev: result.totals.jev.points,
+      correct: result.totals.human.correct,
+      total: result.reveals.length,
+      missed: result.totals.human.missedThreats,
+      catchphrase: card.catchphrase[locale],
+    }),
     url,
     image: `${origin}${card.image}`,
     shareText,

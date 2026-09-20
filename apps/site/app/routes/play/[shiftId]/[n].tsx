@@ -1,5 +1,6 @@
 import { PASSENGERS_PER_SHIFT } from '@game/domain';
 import { createRoute } from 'honox/factory';
+import { ui } from '../../../i18n.js';
 import Checkpoint from '../../../islands/Checkpoint.js';
 
 export default createRoute((c) => {
@@ -10,10 +11,12 @@ export default createRoute((c) => {
     return c.redirect('/');
   }
 
+  const locale = c.get('locale');
+
   return c.render(
     <main class="mx-auto max-w-[1280px] px-4 py-6">
-      <Checkpoint shiftId={shiftId} index={index} />
+      <Checkpoint shiftId={shiftId} index={index} locale={locale} />
     </main>,
-    { title: `検査場 ${index + 1} 人目` },
+    { title: ui(locale).checkpointTitle(index + 1), locale, url: c.req.url },
   );
 });

@@ -1,4 +1,6 @@
 import { PASSENGERS_PER_SHIFT, PASSENGER_IMAGES } from '@game/domain/display';
+import type { Locale } from '@game/domain';
+import { ui } from '../i18n.js';
 import { useEffect, useState } from 'hono/jsx';
 import { PreparingCheckpoint } from '../components/PreparingCheckpoint.js';
 import { goTo, preloadImage } from './browser.js';
@@ -27,12 +29,14 @@ const replayDelays = (perPassengerMs: readonly number[]): number[] => {
   return perPassengerMs.map((ms) => ms * stretch);
 };
 
-const LANES = [
-  { id: 'pass', label: '通過' },
-  { id: 'detain', label: '拘束' },
-] as const;
+const LANES = ['pass', 'detain'] as const;
 
-export default function JevSorting({ shiftId, jev }: { shiftId: string; jev: JevTimings }) {
+export default function JevSorting({
+  shiftId,
+  jev,
+  locale,
+}: { shiftId: string; jev: JevTimings; locale: Locale }) {
+  const t = ui(locale);
   const [landed, setLanded] = useState<number[]>([]);
   const [sealed, setSealed] = useState(false);
   const [preparing, setPreparing] = useState(false);
@@ -82,10 +86,10 @@ export default function JevSorting({ shiftId, jev }: { shiftId: string; jev: Jev
   if (preparing) {
     return (
       <section class="flex flex-col items-center gap-6">
-        <h1 class="text-3xl font-bold sm:text-4xl">配置につきます</h1>
-        <PreparingCheckpoint loaded={loaded} total={CHECKPOINT_ASSETS.length} />
+        <h1 class="text-3xl font-bold sm:text-4xl">{t.preparingTitle}</h1>
+        <PreparingCheckpoint loaded={loaded} total={CHECKPOINT_ASSETS.length} locale={locale} />
         <a href={playUrl} class="link link-primary text-sm">
-          待たずに進む
+          {t.waitNoMore}
         </a>
       </section>
     );
@@ -93,7 +97,7 @@ export default function JevSorting({ shiftId, jev }: { shiftId: string; jev: Jev
 
   return (
     <section>
-      <h1 class="text-3xl font-bold sm:text-4xl">Jev が仕分け中…</h1>
+      <h1 class="text-3xl font-bold sm:text-4xl">{t.sortingTitle}</h1>
 
       <progress
         class="progress progress-primary my-5 w-full"
@@ -103,23 +107,25 @@ export default function JevSorting({ shiftId, jev }: { shiftId: string; jev: Jev
 
       <div class="grid grid-cols-2 gap-4">
         {LANES.map((lane, laneIndex) => (
-          <div class="card border border-base-300 bg-neutral" key={lane.id}>
+          <div class="card border border-base-300 bg-neutral" key={lane}>
             <div class="card-body relative min-h-40 items-center p-4">
-              <h2 class="text-xs tracking-[0.2em] opacity-60">{lane.label}</h2>
+              <h2 class="text-xs tracking-[0.2em] opacity-60">
+                {lane === 'pass' ? t.lanePass : t.laneDetain}
+              </h2>
               <div class="flex flex-wrap justify-center gap-1.5">
                 {landed
                   .filter((index) => index % 2 === laneIndex)
                   .map((index) => (
                     <span
                       key={index}
-                      aria-label="封印された判定"
+                      aria-label={t.sealedCard}
                       class="sealed-card animate-land h-9 w-6 rounded-xs border border-base-300"
                     />
                   ))}
               </div>
               {sealed ? (
                 <div class="absolute inset-0 grid place-items-center rounded-box bg-neutral/85 backdrop-blur-sm">
-                  <span class="badge badge-primary badge-lg tracking-[0.2em]">封印済</span>
+                  <span class="badge badge-primary badge-lg tracking-[0.2em]">{t.sealed}</span>
                 </div>
               ) : null}
             </div>
@@ -130,29 +136,40 @@ export default function JevSorting({ shiftId, jev }: { shiftId: string; jev: Jev
       <p class="mt-5 min-h-12 text-lg">
         {sorted ? (
           <>
-            Jev: {PASSENGERS_PER_SHIFT} 人を{' '}
-            <span class="font-bold text-primary">{seconds(jev.totalMs)} 秒</span>
-            で仕分け完了。判定は封印されました。
-            {jev.failed > 0 ? ` （${jev.failed} 人は回線エラー）` : ''}
+            {locale === 'ja' ? (
+              <>
+                Jev: {PASSENGERS_PER_SHIFT} 人を{' '}
+                <span class="font-bold text-primary">{seconds(jev.totalMs)} 秒</span>
+                で仕分け完了。判定は封印されました。
+                {jev.failed > 0 ? ` （${jev.failed} 人は回線エラー）` : ''}
+              </>
+            ) : (
+              <>
+                Jev sorted {PASSENGERS_PER_SHIFT} passengers in{' '}
+                <span class="font-bold text-primary">{seconds(jev.totalMs)}s</span>. Its verdicts are
+                sealed.
+                {jev.failed > 0 ? ` (${jev.failed} hit a connection error)` : ''}
+              </>
+            )}
           </>
         ) : (
-          <>
-            {landed.length} / {PASSENGERS_PER_SHIFT} 人
-          </>
+          <>{t.passengerCounter(landed.length, PASSENGERS_PER_SHIFT)}</>
         )}
       </p>
 
       <p class="mb-4 text-sm opacity-60">
-        実時間 {seconds(jev.totalMs)} 秒。速すぎて見えないので、再生だけ引き伸ばしています。
+        {locale === 'ja'
+          ? `実時間 ${seconds(jev.totalMs)} 秒。速すぎて見えないので、再生だけ引き伸ばしています。`
+          : `Real time: ${seconds(jev.totalMs)}s. Too fast to watch, so only the playback is stretched.`}
       </p>
 
       {sorted ? (
         <button type="button" class="btn btn-primary btn-lg" onClick={prepare}>
-          あなたの番です。配置につく →
+          {t.takeYourPost}
         </button>
       ) : (
         <button type="button" class="btn btn-ghost" onClick={skip}>
-          スキップ
+          {t.skip}
         </button>
       )}
     </section>

@@ -8,6 +8,7 @@ import {
 } from '@game/domain/display';
 import type { Reveal, ShiftResult } from '@game/domain';
 import { createRoute } from 'honox/factory';
+import { ui } from '../../i18n.js';
 import { createDeps } from '../../deps.js';
 import { buildResultMeta } from '../../pages/meta.js';
 
@@ -28,25 +29,27 @@ export default createRoute(async (c) => {
   const usecases = createUsecases(createDeps(c.env as AppBindings, c.req.url));
   const result = await usecases.getResult({ resultId: c.req.param('id') ?? '' }).catch(() => null);
   const fromRanking = c.req.query('from') === 'ranking';
+  const locale = c.get('locale');
+  const t = ui(locale);
 
   if (result === null) {
     return c.render(
       <main class="mx-auto max-w-xl px-4 py-8">
-        <h1 class="mb-4 text-2xl font-bold">結果が見つかりません</h1>
+        <h1 class="mb-4 text-2xl font-bold">{t.resultNotFound}</h1>
         <div role="alert" class="alert">
           <span>
-            URL が違うか、まだ保存されていません。
+            {t.resultNotFoundBody}
             <a class="link link-primary" href="/">
-              タイトルに戻る
+              {t.backToTitle}
             </a>
           </span>
         </div>
       </main>,
-      { title: '結果が見つかりません' },
+      { title: t.resultNotFound, locale, url: c.req.url },
     );
   }
 
-  const meta = buildResultMeta(result, new URL(c.req.url).origin);
+  const meta = buildResultMeta(result, new URL(c.req.url).origin, locale);
   const card = LEVELS[result.level];
   const { human, jev } = result.totals;
 
@@ -55,7 +58,7 @@ export default createRoute(async (c) => {
       <div class="hover-3d w-full">
         <div class="card border border-base-300 bg-base-200">
           <figure class="relative @container">
-            <img src={card.image} alt={`Lv.${card.level} ${card.title}`} class="w-full" />
+            <img src={card.image} alt={`Lv.${card.level} ${card.title[locale]}`} class="w-full" />
             <div class="absolute inset-y-0 right-0 flex w-2/5 flex-col items-center justify-center gap-[1cqi] px-[2cqi] text-center">
               <p class="w-full truncate text-[4cqi] opacity-70">{result.airport}</p>
               <p
@@ -70,9 +73,9 @@ export default createRoute(async (c) => {
           </figure>
           <div class="card-body items-center text-center">
             <h1 class="card-title text-3xl">
-              Lv.{card.level} {card.title}
+              Lv.{card.level} {card.title[locale]}
             </h1>
-            <p class="text-primary">「{card.catchphrase}」</p>
+            <p class="text-primary">{t.quote(card.catchphrase[locale])}</p>
           </div>
         </div>
         {Array.from({ length: 8 }, (_, i) => (
@@ -82,7 +85,7 @@ export default createRoute(async (c) => {
 
       <div class="stats stats-vertical mt-6 w-full border border-base-300 bg-base-200 sm:stats-horizontal">
         <div class="stat place-items-center">
-          <div class="stat-title">あなた</div>
+          <div class="stat-title">{t.you}</div>
           <div class="stat-value tabular-nums">{human.points}</div>
         </div>
         <div class="stat place-items-center">
@@ -90,17 +93,13 @@ export default createRoute(async (c) => {
           <div class="stat-value tabular-nums">{jev.points}</div>
         </div>
         <div class="stat place-items-center">
-          <div class="stat-title">勝敗</div>
+          <div class="stat-title">{t.winner}</div>
           <div
             class={`stat-value text-2xl ${
               result.winner === 'human' ? 'text-success' : result.winner === 'jev' ? 'text-error' : ''
             }`}
           >
-            {result.winner === 'human'
-              ? 'あなたの勝ち'
-              : result.winner === 'jev'
-                ? 'Jev の勝ち'
-                : '引き分け'}
+            {result.winner === 'human' ? t.youWin : result.winner === 'jev' ? t.jevWins : t.draw}
           </div>
         </div>
       </div>
@@ -108,48 +107,48 @@ export default createRoute(async (c) => {
       <div class="mt-6 flex flex-wrap gap-2">
         {fromRanking ? null : (
           <a href={meta.shareUrl} target="_blank" rel="noreferrer" class="btn btn-primary">
-            X でシェア
+            {t.shareOnX}
           </a>
         )}
         <a href="/ranking" class="btn btn-outline">
-          ランキングを見る
+          {t.seeRanking}
         </a>
         <a href={`/api/result/${result.resultId}`} download class="btn btn-ghost">
-          JSON を保存
+          {t.saveJson}
         </a>
       </div>
 
       <div class="card mt-6 border border-base-300 bg-base-200">
         <div class="card-body gap-2">
           <div class="flex justify-between border-b border-base-300 py-1">
-            <span class="opacity-60">正答</span>
+            <span class="opacity-60">{t.statCorrect}</span>
             <span class="tabular-nums">
-              {human.correct}/{result.reveals.length}（Jev {jev.correct}/{result.reveals.length}）
+              {t.ofTotal(human.correct, result.reveals.length, jev.correct)}
             </span>
           </div>
           <div class="flex justify-between border-b border-base-300 py-1">
-            <span class="opacity-60">見逃し</span>
+            <span class="opacity-60">{t.statMissed}</span>
             <span class="tabular-nums">
-              {human.missedThreats}（Jev {jev.missedThreats}）
+              {human.missedThreats} {t.withJev(jev.missedThreats)}
             </span>
           </div>
           <div class="flex justify-between border-b border-base-300 py-1">
-            <span class="opacity-60">誤検知</span>
+            <span class="opacity-60">{t.statFalseDetain}</span>
             <span class="tabular-nums">
-              {human.falseDetains}（Jev {jev.falseDetains}）
+              {human.falseDetains} {t.withJev(jev.falseDetains)}
             </span>
           </div>
           <div class="flex justify-between py-1">
-            <span class="opacity-60">所要時間</span>
+            <span class="opacity-60">{t.statDuration}</span>
             <span class="tabular-nums">
-              {formatDuration(human.elapsedMs)} vs {formatDuration(jev.elapsedMs)}
+              {formatDuration(human.elapsedMs, locale)} vs {formatDuration(jev.elapsedMs, locale)}
             </span>
           </div>
 
           <div class="mt-2 flex flex-col gap-1">
             <div class="flex items-center gap-3">
               <Marks result={result} side="human" />
-              <span class="text-sm opacity-60">あなた</span>
+              <span class="text-sm opacity-60">{t.you}</span>
             </div>
             <div class="flex items-center gap-3">
               <Marks result={result} side="jev" />
@@ -164,8 +163,11 @@ export default createRoute(async (c) => {
           <div class="collapse-arrow collapse border border-base-300 bg-base-200" key={reveal.index}>
             <input type="checkbox" />
             <div class="collapse-title text-sm font-medium">
-              乗客 {reveal.index + 1}・真実: {reveal.truth.isThreat ? '脅威' : '無害'}・
-              {OUTCOME_LABELS[reveal.human.outcome]}
+              {t.passengerLabel(reveal.index + 1)}
+              {t.midDot}
+              {t.truthPrefix}: {reveal.truth.isThreat ? t.truthThreatShort : t.truthBenignShort}
+              {t.midDot}
+              {OUTCOME_LABELS[reveal.human.outcome][locale]}
               <span
                 class={`ml-2 tabular-nums ${reveal.human.points >= 0 ? 'text-success' : 'text-error'}`}
               >
@@ -175,15 +177,21 @@ export default createRoute(async (c) => {
             </div>
             <div class="collapse-content flex flex-col gap-2 text-sm">
               <p>
-                あなた: {reveal.human.verdict === 'detain' ? '拘束' : '通過'}・確信度{' '}
-                {Math.round(reveal.human.confidence * 100)}%・
-                {formatDuration(reveal.human.elapsedMs)}
+                {t.you}: {reveal.human.verdict === 'detain' ? t.detain : t.pass}
+                {t.midDot}
+                {t.confidenceSuffix} {Math.round(reveal.human.confidence * 100)}%{t.midDot}
+                {formatDuration(reveal.human.elapsedMs, locale)}
               </p>
               <p>
                 Jev:{' '}
                 {reveal.jev.decision.kind === 'decided'
-                  ? `${reveal.jev.decision.verdict === 'detain' ? '拘束' : '通過'}・確信度 ${Math.round(reveal.jev.decision.verdictConfidence * 100)}%・ハイジャックの見立て ${reveal.jev.decision.threatProbability.toFixed(2)}（${reveal.jev.points >= 0 ? '+' : ''}${reveal.jev.points}）`
-                  : '判定不能'}
+                  ? [
+                      reveal.jev.decision.verdict === 'detain' ? t.detain : t.pass,
+                      `${t.confidenceSuffix} ${Math.round(reveal.jev.decision.verdictConfidence * 100)}%`,
+                      `${t.jevThreatEstimate} ${reveal.jev.decision.threatProbability.toFixed(2)}`,
+                      `(${reveal.jev.points >= 0 ? '+' : ''}${reveal.jev.points})`,
+                    ].join(t.midDot)
+                  : t.noDecision}
               </p>
 
               {reveal.jev.decision.kind === 'decided' ? (
@@ -191,7 +199,7 @@ export default createRoute(async (c) => {
                   {Object.entries(reveal.jev.decision.aspects).map(([id, value]) => (
                     <div class="grid grid-cols-[4rem_1fr_2.5rem] items-center gap-2" key={id}>
                       <span class="opacity-70">
-                        {ASPECT_LABELS[id as keyof typeof ASPECT_LABELS]}
+                        {ASPECT_LABELS[id as keyof typeof ASPECT_LABELS][locale]}
                       </span>
                       <progress class="progress progress-primary" value={value} max={1} />
                       <span class="text-right tabular-nums">{value.toFixed(2)}</span>
@@ -201,15 +209,19 @@ export default createRoute(async (c) => {
               ) : null}
 
               <p class="opacity-60">
-                あなたが調べた項目:{' '}
+                {t.inspectedByYou}:{' '}
                 {reveal.human.inspected.length === 0
-                  ? 'なし'
-                  : reveal.human.inspected.map((item) => INSPECTED_LABELS[item]).join('、')}
+                  ? t.none
+                  : reveal.human.inspected
+                      .map((item) => INSPECTED_LABELS[item][locale])
+                      .join(t.listSeparator)}
               </p>
               {reveal.missedByHuman.length > 0 ? (
                 <p class="text-warning">
-                  見なかったもの:{' '}
-                  {reveal.missedByHuman.map((item) => INSPECTED_LABELS[item]).join('、')}
+                  {t.notInspected}:{' '}
+                  {reveal.missedByHuman
+                    .map((item) => INSPECTED_LABELS[item][locale])
+                    .join(t.listSeparator)}
                 </p>
               ) : null}
             </div>
@@ -219,7 +231,7 @@ export default createRoute(async (c) => {
 
       <div class="mt-8">
         <a class="link link-primary" href="/">
-          もう一度遊ぶ
+          {t.playAgain}
         </a>
       </div>
     </main>,
@@ -228,6 +240,8 @@ export default createRoute(async (c) => {
       description: meta.description,
       image: meta.image,
       canonical: meta.url,
+      locale,
+      url: c.req.url,
     },
   );
 });
