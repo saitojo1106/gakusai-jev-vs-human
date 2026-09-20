@@ -1,0 +1,165 @@
+import { generatePassenger } from '@game/domain';
+import type { Dossier, PassengerIndex, Seed } from '@game/domain';
+import { beforeEach, describe, expect, it, vi } from 'vitest';
+import { JevGatewayJudge } from './jev-gateway-judge.js';
+
+const dossiers = (count: number): readonly Dossier[] =>
+  Array.from(
+    { length: count },
+    (_, i) => generatePassenger('adapter' as Seed, i as PassengerIndex).dossier,
+  );
+
+const body = (over: Record<string, unknown> = {}) => ({
+  answers: {
+    verdict: { choice: 'detain' },
+    threat: { probability: 0.91 },
+    suspicion: { score: 3.2 },
+    documents: { probability: 0.82 },
+    belongings: { probability: 0.61 },
+    interview: { probability: 0.3 },
+    body: { probability: 0.15 },
+    background: { probability: 0.08 },
+  },
+  usage: { inputTokens: 900, outputTokens: 12, totalTokens: 912 },
+  ...over,
+});
+
+const ok = (payload: unknown = body()) =>
+  new Response(JSON.stringify(payload), { status: 200, headers: { 'content-type': 'application/json' } });
+
+let fetchImpl: ReturnType<typeof vi.fn>;
+
+const judge = (over: Partial<ConstructorParameters<typeof JevGatewayJudge>[0]> = {}) =>
+  new JevGatewayJudge({
+    apiKey: 'test-key',
+    model: 'typesafe-ai/jev',
+    timeoutMs: 3000,
+    fetchImpl: fetchImpl as unknown as typeof fetch,
+    ...over,
+  });
+
+beforeEach(() => {
+  fetchImpl = vi.fn(() => Promise.resolve(ok()));
+});
+
+describe('JevGatewayJudge', () => {
+  it('乗客 1 人につき 1 リクエストを投げる', async () => {
+    await judge().evaluateMany(dossiers(10));
+    expect(fetchImpl).toHaveBeenCalledTimes(10);
+  });
+
+  it('応答を JudgeDecision に写す', async () => {
+    const { decisions } = await judge().evaluateMany(dossiers(1));
+    expect(decisions[0]?.decision).toEqual({
+      kind: 'decided',
+      verdict: 'detain',
+      threatProbability: 0.91,
+      suspicion: 3.2,
+      aspects: {
+        documents: 0.82,
+        belongings: 0.61,
+        interview: 0.3,
+        body: 0.15,
+        background: 0.08,
+      },
+    });
+  });
+
+  it('1 件ごとのレイテンシと全体の壁時計時間を測る', async () => {
+    const batch = await judge().evaluateMany(dossiers(3));
+    expect(batch.decisions).toHaveLength(3);
+    for (const d of batch.decisions) expect(d.latencyMs).toBeGreaterThanOrEqual(0);
+    expect(batch.wallMs).toBeGreaterThanOrEqual(0);
+  });
+
+  it('Bearer 認証とモデル名を送る', async () => {
+    await judge().evaluateMany(dossiers(1));
+    const [url, init] = fetchImpl.mock.calls[0] as [string, RequestInit];
+
+    expect(url).toBe('https://ai-gateway.vercel.sh/v1/evaluate');
+    expect((init.headers as Record<string, string>).Authorization).toBe('Bearer test-key');
+    expect(JSON.parse(String(init.body)).model).toBe('typesafe-ai/jev');
+  });
+
+  it('ゼロデータ保持を指定する', async () => {
+    await judge().evaluateMany(dossiers(1));
+    const [, init] = fetchImpl.mock.calls[0] as [string, RequestInit];
+    expect(JSON.parse(String(init.body)).providerOptions.gateway.zeroDataRetention).toBe(true);
+  });
+
+  it('判定 3 問と着眼点 5 問を 1 リクエストにまとめる', async () => {
+    await judge().evaluateMany(dossiers(1));
+    const [, init] = fetchImpl.mock.calls[0] as [string, RequestInit];
+    const sent = JSON.parse(String(init.body));
+
+    expect(Object.keys(sent.questions).sort()).toEqual(
+      ['background', 'belongings', 'body', 'documents', 'interview', 'suspicion', 'threat', 'verdict'].sort(),
+    );
+    expect(sent.questions.verdict.type).toBe('choice');
+    expect(Object.keys(sent.questions.verdict.criteria).sort()).toEqual(['detain', 'pass']);
+    expect(sent.questions.threat.type).toBe('boolean');
+    expect(sent.questions.suspicion.type).toBe('score');
+  });
+
+  it('真実を一切送らない', async () => {
+    await judge().evaluateMany(dossiers(10));
+    for (const [, init] of fetchImpl.mock.calls as [string, RequestInit][]) {
+      const text = String(init.body);
+      for (const leak of ['isThreat', 'keySignals', 'threatType']) {
+        expect(text).not.toContain(leak);
+      }
+    }
+  });
+
+  it('HTTP エラーは判定不能にする', async () => {
+    fetchImpl.mockResolvedValue(new Response('nope', { status: 500 }));
+    const { decisions } = await judge().evaluateMany(dossiers(1));
+    expect(decisions[0]?.decision).toMatchObject({ kind: 'unavailable' });
+  });
+
+  it('応答の形が違えば判定不能にする', async () => {
+    fetchImpl.mockResolvedValue(ok({ answers: { verdict: { choice: 'deport' } } }));
+    const { decisions } = await judge().evaluateMany(dossiers(1));
+    expect(decisions[0]?.decision).toMatchObject({ kind: 'unavailable' });
+  });
+
+  it('JSON でない応答は判定不能にする', async () => {
+    fetchImpl.mockResolvedValue(new Response('<html>', { status: 200 }));
+    const { decisions } = await judge().evaluateMany(dossiers(1));
+    expect(decisions[0]?.decision).toMatchObject({ kind: 'unavailable' });
+  });
+
+  it('通信エラーは判定不能にする', async () => {
+    fetchImpl.mockRejectedValue(new Error('network down'));
+    const { decisions } = await judge().evaluateMany(dossiers(1));
+    expect(decisions[0]?.decision).toMatchObject({ kind: 'unavailable', reason: expect.any(String) });
+  });
+
+  it('タイムアウトは判定不能にする', async () => {
+    fetchImpl.mockImplementation(
+      (_url: string, init: RequestInit) =>
+        new Promise((_resolve, reject) => {
+          init.signal?.addEventListener('abort', () => reject(new DOMException('aborted', 'AbortError')));
+        }),
+    );
+    const { decisions } = await judge({ timeoutMs: 20 }).evaluateMany(dossiers(1));
+    expect(decisions[0]?.decision).toMatchObject({ kind: 'unavailable' });
+  });
+
+  it('1 人が失敗しても残りの判定は返す', async () => {
+    let call = 0;
+    fetchImpl.mockImplementation(() => {
+      call += 1;
+      return call === 2 ? Promise.resolve(new Response('', { status: 503 })) : Promise.resolve(ok());
+    });
+
+    const { decisions } = await judge().evaluateMany(dossiers(3));
+    expect(decisions.map((d) => d.decision.kind)).toEqual(['decided', 'unavailable', 'decided']);
+  });
+
+  it('判定不能でもレイテンシは記録する', async () => {
+    fetchImpl.mockResolvedValue(new Response('', { status: 500 }));
+    const { decisions } = await judge().evaluateMany(dossiers(1));
+    expect(decisions[0]?.latencyMs).toBeGreaterThanOrEqual(0);
+  });
+});

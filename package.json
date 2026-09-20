@@ -6,10 +6,16 @@
   "scripts": {
     "test": "vitest run",
     "test:watch": "vitest",
-    "typecheck": "tsc --pretty"
+    "typecheck": "tsc --pretty && tsc -p apps/site --pretty"
   },
   "devDependencies": {
     "typescript": "^5.9.3",
-    "vitest": "^5.0.1"
+    "vitest": "^4.1.0"
+  },
+  "pnpm": {
+    "onlyBuiltDependencies": [
+      "esbuild",
+      "workerd"
+    ]
   }
 }

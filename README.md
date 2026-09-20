@@ -69,6 +69,8 @@ pnpm test:watch     # ウォッチ
 pnpm typecheck      # 型チェック
 ```
 
+KV アダプタのテストは Miniflare 上で走る（`--project site-workers`）。`@cloudflare/vitest-pool-workers` が vitest 4 系までなので、vitest は 4 に固定している。workerd が対応する最新の互換性日付に合わせて `compatibility_date` は `2026-08-22`。
+
 ## 進め方
 
 要件定義書 §9 のテスト駆動の順で進める。
@@ -76,10 +78,10 @@ pnpm typecheck      # 型チェック
 - [x] `Prng`（決定的乱数）
 - [x] `generatePassenger`（決定的生成・整合性ルール）
 - [x] `score` / `judgeLevel` / `summarizeShift`（採点・レベル認定）
-- [ ] `contracts`（Zod スキーマ）
-- [ ] `StartShift` / `SubmitVerdict` / `FinishShift`（Fake で）
-- [ ] `JevGatewayJudge`（fetch モック → 契約テスト）
-- [ ] `KvShiftStore` / `KvResultStore` / `KvLeaderboard`
+- [x] `contracts`（Zod スキーマ）
+- [x] `StartShift` / `SubmitVerdict` / `FinishShift`（Fake で）
+- [x] `JevGatewayJudge`（fetch モック。契約テストは未）
+- [x] `KvShiftStore` / `KvResultStore` / `KvLeaderboard`
 - [ ] HonoX の API ルート → `/r/:id` の SSR（OG タグ）→ `/ranking`
 - [ ] 島（`Checkpoint` → `JevDemo` → `ShareButtons`）
 
