@@ -169,8 +169,10 @@ KV アダプタのテストは Miniflare 上で走る（`--project site-workers`
 `*.workers.dev` でも独自ドメインでもそのまま動く）。
 
 ```bash
-pnpm --filter @game/site deploy
+pnpm --filter @game/site run deploy
 ```
+
+`run` は省略できない。`pnpm deploy` は pnpm の組み込みコマンドなので、スクリプトより優先されてしまう。
 
 初回のみ、デプロイ後に Jev のキーを登録する。
 
