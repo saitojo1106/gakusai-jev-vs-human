@@ -117,6 +117,44 @@ describe('JevGatewayJudge', () => {
     expect(decisions[0]?.decision).toMatchObject({ kind: 'unavailable' });
   });
 
+  it('HTTP エラーの理由に応答本文を残す', async () => {
+    fetchImpl.mockResolvedValue(
+      new Response(
+        JSON.stringify({ error: { message: 'requires a valid credit card on file' } }),
+        { status: 403 },
+      ),
+    );
+    const { decisions } = await judge().evaluateMany(dossiers(1));
+    const decision = decisions[0]?.decision;
+
+    expect(decision).toMatchObject({ kind: 'unavailable' });
+    if (decision?.kind !== 'unavailable') throw new Error('unreachable');
+    expect(decision.reason).toContain('403');
+    expect(decision.reason).toContain('credit card');
+  });
+
+  it('応答本文が長くても理由は切り詰める', async () => {
+    fetchImpl.mockResolvedValue(new Response('x'.repeat(5000), { status: 500 }));
+    const { decisions } = await judge().evaluateMany(dossiers(1));
+    const decision = decisions[0]?.decision;
+
+    if (decision?.kind !== 'unavailable') throw new Error('unreachable');
+    expect(decision.reason.length).toBeLessThanOrEqual(220);
+  });
+
+  it('本文が読めなくてもステータスは残す', async () => {
+    fetchImpl.mockResolvedValue({
+      ok: false,
+      status: 502,
+      text: () => Promise.reject(new Error('stream closed')),
+    } as unknown as Response);
+    const { decisions } = await judge().evaluateMany(dossiers(1));
+    const decision = decisions[0]?.decision;
+
+    if (decision?.kind !== 'unavailable') throw new Error('unreachable');
+    expect(decision.reason).toContain('502');
+  });
+
   it('応答の形が違えば判定不能にする', async () => {
     fetchImpl.mockResolvedValue(ok({ answers: { verdict: { choice: 'deport' } } }));
     const { decisions } = await judge().evaluateMany(dossiers(1));

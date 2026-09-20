@@ -42,6 +42,19 @@ const QUESTIONS = {
   background: { type: 'boolean', instructions: JEV_ASPECT_QUESTIONS.background },
 } as const;
 
+const MAX_REASON_LENGTH = 200;
+
+const errorReason = async (response: Response): Promise<string> => {
+  const status = `http ${response.status}`;
+  try {
+    const text = (await response.text()).trim();
+    if (text.length === 0) return status;
+    return `${status}: ${text.slice(0, MAX_REASON_LENGTH)}`;
+  } catch {
+    return status;
+  }
+};
+
 const reasonOf = (error: unknown): string => {
   if (error instanceof DOMException && error.name === 'AbortError') return 'timeout';
   if (error instanceof Error) return error.message;
@@ -91,7 +104,7 @@ export class JevGatewayJudge implements JudgePort {
       });
 
       if (!response.ok) {
-        return this.unavailable(startedAt, `http ${response.status}`);
+        return this.unavailable(startedAt, await errorReason(response));
       }
 
       const parsed = jevEvaluateResponseSchema.safeParse(await response.json());
