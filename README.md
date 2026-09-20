@@ -163,6 +163,28 @@ KV アダプタのテストは Miniflare 上で走る（`--project site-workers`
 
 `JevGatewayJudge` は 429 と 5xx を [ドキュメントの指針](https://vercel.com/docs/ai-gateway/rate-limits) どおりに投げ直す。`retry-after` があれば秒数でも HTTP 日付でもその値を尊重し、無ければ指数バックオフ。総リトライ時間は 6 秒で打ち切り、それでも駄目なら「判定不能・0 点」にしてゲームは続行する。同時実行は既定で 6 件に絞っている。
 
+## デプロイ
+
+公開先は `workers.dev` の無料サブドメイン。`PUBLIC_ORIGIN` は設定しない（リクエストのホストから導出するので、
+`*.workers.dev` でも独自ドメインでもそのまま動く）。
+
+```bash
+pnpm --filter @game/site deploy
+```
+
+初回のみ、デプロイ後に Jev のキーを登録する。
+
+```bash
+pnpm --filter @game/site exec wrangler secret put AI_GATEWAY_API_KEY
+```
+
+KV ネームスペース `GAME_KV` は作成済みで、id は [wrangler.jsonc](apps/site/wrangler.jsonc) に入っている。
+ローカル開発は Miniflare のローカル KV を使う（`remote` は付けない）。付けると開発中のテストプレイが
+本番のランキングに混ざる。
+
+GitHub Actions は `master` への push で型チェック・テスト・ビルドを回し、デプロイまで行う。リポジトリの
+secret に `CLOUDFLARE_API_TOKEN` と `CLOUDFLARE_ACCOUNT_ID` を登録すること。
+
 ## 未決事項
 
 要件定義書 §12 の 9 点は、返答がない前提で推奨案を採用している。
@@ -179,4 +201,4 @@ KV アダプタのテストは Miniflare 上で走る（`--project site-workers`
 | 8 | HonoX のレンダラ | hono/jsx |
 | 9 | 絵のトーン | フラットベクター・コミカル寄り |
 
-サブドメイン（例 `security.<your-domain>`）は未決。
+サブドメインは `workers.dev` の無料サブドメインを使うことにした。

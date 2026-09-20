@@ -1,16 +1,28 @@
 {
-  "$schema": "node_modules/wrangler/config-schema.json",
-  "name": "security-checkpoint",
-  "main": "./dist/index.js",
-  "compatibility_date": "2026-08-22",
-  "compatibility_flags": ["nodejs_compat"],
-  "assets": { "directory": "./dist", "binding": "ASSETS" },
-  "kv_namespaces": [{ "binding": "GAME_KV", "id": "<namespace id>" }],
-  "observability": { "enabled": true },
-  "vars": {
-    "JEV_MODEL": "typesafe-ai/jev",
-    "JEV_TIMEOUT_MS": "3000",
-    "PUBLIC_ORIGIN": "http://localhost:5173",
-    "JUDGE": "gateway"
-  }
+	"$schema": "node_modules/wrangler/config-schema.json",
+	"name": "security-checkpoint",
+	"main": "./dist/index.js",
+	"compatibility_date": "2026-08-22",
+	"compatibility_flags": [
+		"nodejs_compat"
+	],
+	"assets": {
+		"directory": "./dist",
+		"binding": "ASSETS"
+	},
+	"kv_namespaces": [
+		{
+			"binding": "GAME_KV",
+			"id": "8b744d4636c8407d97fdd3650260aa0d"
+		}
+	],
+	"workers_dev": true,
+	"observability": {
+		"enabled": true
+	},
+	"vars": {
+		"JEV_MODEL": "typesafe-ai/jev",
+		"JEV_TIMEOUT_MS": "3000",
+		"JUDGE": "gateway"
+	}
 }
